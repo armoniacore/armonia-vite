@@ -16,7 +16,7 @@ $ pnpm i @armonia/vite -D
 ```ts
 // vite.config.ts
 import { defineConfig } from 'vite'
-import defineConfig from '@armonia/vite'
+import { armonia } from '@armonia/vite'
 
 export default defineConfig({
   plugins: [armonia()]

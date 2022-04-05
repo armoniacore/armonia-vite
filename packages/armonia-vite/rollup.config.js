@@ -140,14 +140,14 @@ function apiExtractor2(outputDir, types) {
 export default defineConfig({
   input: {
     'bin/cli': 'src/cli.ts',
-    index: 'src/index.ts',
-    minify: 'src/minify.ts'
+    index: 'src/index.ts'
+    // minify: 'src/minify.ts'
   },
 
   output: {
     dir: './dist',
     format: 'cjs',
-    exports: 'auto',
+    exports: 'named',
     interop: false,
     preferConst: true,
     preserveModules: false,
@@ -184,7 +184,7 @@ export default defineConfig({
     }),
     commonjs(),
     nodeResolve(),
-    ...apiExtractor2('./dist', ['index.d.ts', 'minify.d.ts']),
+    ...apiExtractor2('./dist', ['index.d.ts']),
     packageJsonPlugin({
       outputFolder: './dist',
       baseContents: {
@@ -204,10 +204,6 @@ export default defineConfig({
           '.': {
             require: './index.js',
             types: './index.d.ts'
-          },
-          './minify': {
-            require: './minify.js',
-            types: './minify.d.ts'
           },
           './package.json': './package.json'
         },

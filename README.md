@@ -15,7 +15,7 @@ Read the [documentation](https://vite.armoniacore.com/) or explore the [examples
 
 ```ts
 import { defineConfig } from 'vite'
-import defineConfig from '@armonia/vite'
+import { armonia } from '@armonia/vite'
 
 // vite.config.ts
 export default defineConfig({

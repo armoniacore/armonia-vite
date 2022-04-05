@@ -293,7 +293,7 @@ Be aware that the strategy you choose to inject the content during the ssr need 
 The default minifier included in this plugin is quite aggressive without asking for trouble, it will work out of the box for most projects.
 
 ```js
-import minify from '@armonia/vite'
+import { minify } from '@armonia/vite'
 
 armonia({
   ssr: {

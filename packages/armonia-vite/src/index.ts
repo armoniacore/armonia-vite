@@ -12,6 +12,7 @@ import type {
 import type { Plugin } from 'vite'
 import electron from './plugin-electron'
 import ssr from './plugin-ssr'
+import minify from './minify'
 
 export {
   Options,
@@ -22,10 +23,13 @@ export {
   ElectronBuilderOptions,
   PackageJson,
   Manifest,
-  SSRRenderContext as RenderContext
+  SSRRenderContext,
+  minify,
+  electron,
+  ssr
 }
 
-export default function armonia(options?: Options): Plugin {
+export function armonia(options?: Options): Plugin {
   const target = options?.target || (process.env['ARMONIA_TARGET'] as Target) || 'spa'
 
   const targets = target.split('-')
