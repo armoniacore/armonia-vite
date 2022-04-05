@@ -129,11 +129,18 @@ export default function electron(options?: ElectronOptions): Plugin {
 
       if (command === 'build') {
         return {
-          base: './' // critical or we cant build properly
+          base: './', // critical or we cant build properly
+          define: {
+            'import.meta.env.ELECTRON': true
+          }
         }
       }
 
-      return undefined
+      return {
+        define: {
+          'import.meta.env.ELECTRON': true
+        }
+      }
     },
 
     configResolved(config) {
