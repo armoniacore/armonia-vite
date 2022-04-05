@@ -11,6 +11,6 @@ export default defineConfig({
     editLinks: true,
     editLinkText: 'Improve this page',
 
-    nav: [{ text: 'Examples', link: 'https://github.com/armoniacore/armonia-vite/packages/playground' }]
+    nav: [{ text: 'Examples', link: 'https://github.com/armoniacore/armonia-vite/tree/main/packages/playground' }]
   }
 })

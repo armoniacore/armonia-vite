@@ -23,4 +23,4 @@ export default defineConfig({
 })
 ```
 
-> Explore the [example projects](https://github.com/armoniacore/armonia-vite/packages/playground)
+> Explore the [example projects](https://github.com/armoniacore/armonia-vite/tree/main/packages/playground)
