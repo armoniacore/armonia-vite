@@ -131,14 +131,14 @@ importers:
 
   packages/playground/electron-vue:
     specifiers:
-      '@armonia/vite': link:..\..\armonia-vite\dist
-      '@vitejs/plugin-vue': ^2.3.1
+      '@armonia/vite': link:../../armonia-vite/dist
+      '@vitejs/plugin-vue': ^2.3.0
       electron: ^18.0.1
       electron-builder: ^22.14.13
       electron-packager: ^15.4.0
-      typescript: ^4.6.3
-      vite: ^2.9.1
-      vue: ^3.2.31
+      typescript: ^4.5.4
+      vite: ^2.9.0
+      vue: ^3.2.25
       vue-tsc: ^0.29.8
     dependencies:
       vue: 3.2.31
@@ -168,6 +168,27 @@ importers:
       electron: 18.0.1
       electron-builder: 22.14.13
       electron-packager: 15.4.0
+      typescript: 4.6.3
+      vite: 2.9.1
+      vue-tsc: 0.29.8_typescript@4.6.3
+
+  packages/playground/ssr-vue:
+    specifiers:
+      '@armonia/vite': link:../../armonia-vite/dist
+      '@vitejs/plugin-vue': ^2.3.0
+      '@vue/compiler-sfc': ^3.2.25
+      '@vue/server-renderer': ^3.2.25
+      typescript: ^4.5.4
+      vite: ^2.9.0
+      vue: ^3.2.25
+      vue-tsc: ^0.29.8
+    dependencies:
+      vue: 3.2.31
+    devDependencies:
+      '@armonia/vite': link:../../armonia-vite/dist
+      '@vitejs/plugin-vue': 2.3.1_vite@2.9.1+vue@3.2.31
+      '@vue/compiler-sfc': 3.2.31
+      '@vue/server-renderer': 3.2.31_vue@3.2.31
       typescript: 4.6.3
       vite: 2.9.1
       vue-tsc: 0.29.8_typescript@4.6.3
