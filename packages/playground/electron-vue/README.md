@@ -1,16 +1,88 @@
-# Vue 3 + Typescript + Vite
+# # Vue 3 + Typescript + Vite + Electron
 
-This template should help get you started developing with Vue 3 and Typescript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Start with a [vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project):
 
-## Recommended IDE Setup
+```bash
+pnpm create vite electron-vue -- --template vue-ts
+```
 
-- [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=johnsoncodehk.volar)
+Add Armonia:
 
-## Type Support For `.vue` Imports in TS
+```bash
+pnpm i @armonia/vite -D
+```
 
-Since TypeScript cannot handle type information for `.vue` imports, they are shimmed to be a generic Vue component type by default. In most cases this is fine if you don't really care about component prop types outside of templates. However, if you wish to get actual prop types in `.vue` imports (for example to get props validation when using manual `h(...)` calls), you can enable Volar's Take Over mode by following these steps:
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import armonia from '@armonia/vite'
 
-1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette, look for `TypeScript and JavaScript Language Features`, then right click and select `Disable (Workspace)`. By default, Take Over mode will enable itself if the default TypeScript extension is disabled.
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
+export default defineConfig({
+  plugins: [
+    vue(),
+    armonia({
+      target: 'electron'
+    })
+  ]
+})
+```
 
-You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
+Place your electron files in a folder named `src-electron` or `electron`
+
+```ts
+// src-electron/index.ts
+import { app, BrowserWindow } from 'electron'
+
+function createWindow() {
+  // Create the browser window.
+  const mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: true
+    }
+  })
+
+  // use vite as normally
+  if (import.meta.env.DEV) {
+    mainWindow.loadURL(import.meta.env.ELECTRON_APP_URL)
+    mainWindow.webContents.openDevTools()
+  } else {
+    mainWindow.loadFile(import.meta.env.ELECTRON_APP_URL)
+  }
+}
+
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+// Some APIs can only be used after this event occurs.
+app.whenReady().then(() => {
+  createWindow()
+  app.on('activate', function () {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+})
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+```
+
+Run vite as usual:
+
+```bash
+pnpm run dev
+```
+
+Build:
+
+```bash
+pnpm run build
+```
