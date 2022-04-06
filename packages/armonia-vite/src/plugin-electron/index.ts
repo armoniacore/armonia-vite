@@ -8,6 +8,7 @@ import type { ElectronProcess } from './run'
 import { runElectron } from './run'
 import type { Options as ElectronPackagerConfig } from 'electron-packager'
 import type { PackageJson, ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions } from '../config'
+import { mergeConfig } from 'vite'
 
 export { PackageJson, ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions }
 
@@ -127,20 +128,21 @@ export default function electron(options?: ElectronOptions): Plugin {
     config(_, env) {
       command = env.command
 
+      // TODO: apply options.config
       if (command === 'build') {
-        return {
+        return mergeConfig(options?.config || {}, {
           base: './', // critical or we cant build properly
           define: {
             'import.meta.env.ELECTRON': true
           }
-        }
+        })
       }
 
-      return {
+      return mergeConfig(options?.config || {}, {
         define: {
           'import.meta.env.ELECTRON': true
         }
-      }
+      })
     },
 
     configResolved(config) {
@@ -242,9 +244,7 @@ export default function electron(options?: ElectronOptions): Plugin {
           projectDir: dir,
           config: builderOptions
         })
-      }
-
-      if (bundler === 'packager') {
+      } else if (bundler === 'packager') {
         const electronPackager = (await import('electron-packager')) as unknown as ElectronPackager
 
         const packagerOptions = options?.packager || {}
@@ -254,6 +254,8 @@ export default function electron(options?: ElectronOptions): Plugin {
           dir,
           out
         })
+      } else {
+        resolvedConfig.logger.warn("no electron bundler found, install either 'electron-builder' or 'electron-packager'")
       }
     }
   }
