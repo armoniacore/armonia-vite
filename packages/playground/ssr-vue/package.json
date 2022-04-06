@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build --ssr src/entry-server.ts",
+    "build:noExternal": "vite build --config vite.config.noexternal.ts --ssr src/entry-server.ts",
     "preview": "vite preview"
   },
   "dependencies": {
