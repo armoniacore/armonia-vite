@@ -197,14 +197,7 @@ export default defineConfig({
         },
         main: 'index.js',
         types: 'index.d.ts',
-        files: ['bin'],
-        exports: {
-          '.': {
-            require: './index.js',
-            types: './index.d.ts'
-          },
-          './package.json': './package.json'
-        },
+        files: ['bin', 'index.d.ts'],
         keywords: packageJson.keywords,
         engines: packageJson.engines,
         repository: packageJson.repository,
