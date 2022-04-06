@@ -48,7 +48,7 @@ function info(logger: { info: (value: string) => void }, name: string, value: st
 /**
  * The vite ssr plugin, it apply a middleware to the vite dev server that allow development under ssr without leaving vite.
  */
-export default function ssr<TModule = any>(options?: SSRPluginOptions<TModule>): Plugin {
+export default function ssr(options?: SSRPluginOptions): Plugin {
   const SSR_MANIFEST_NAME = /* options?.manifestId || */ 'ssr:manifest'
   const SSR_TEMPLATE_NAME = /* options?.manifestId || */ 'ssr:template'
 
