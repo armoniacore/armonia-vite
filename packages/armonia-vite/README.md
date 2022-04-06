@@ -5,6 +5,4 @@
 - ⚛️ Electron
 - 📥 SSR
 
-Yup, better icons are needed...
-
 [Read the documentation](https://vite.armoniacore.com/).
