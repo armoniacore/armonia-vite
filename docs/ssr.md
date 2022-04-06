@@ -6,16 +6,19 @@
 
 When in SSR, Armonia will look for the file `src/entry-server` which can be either `.ts` or `.js` to use as an entry point for rendering the SSR application.
 
-That file does not have to have any special code inside to work, however, Armonia will automatically use an export named `renderVite` that accept an url and a string containing the html template code.
+This file does not have to have any special code to work, however, Armonia will automatically use an export named `render` that accept an instance of the node request `http:IncomingMessage` and node response `http:ServerResponse`, the function can return a string containing the html template code.
 
 And example would be:
 
 ```ts
 // src/entry-server.ts
-export function renderVite(url: string, template: string) {
+import manifest from 'ssr:manifest'
+import template from 'ssr:template'
+
+export async function render(req: http:IncomingMessage, res: http:ServerResponse) {
   const { app, router } = createApp()
 
-  router.push(url)
+  router.push(url.originalUrl)
   await router.isReady()
 
   const ctx = {}
@@ -26,23 +29,54 @@ export function renderVite(url: string, template: string) {
   return template
     .replace(`<!--preload-links-->`, preloadLinks)
     .replace(`<!--app-html-->`, appHtml)
+
+  // or write directly in the response
+  res.writeHeader(200, {"Content-Type": "text/html"});
+  res.write(template.replace(...));
+  res.end();
 }
 ```
 
-It also use a general purpose `render` exposed function if `renderVite` is not available, this function should be:
+The function could also accept a manifest and template:
 
 ```ts
-type RenderFunction = (
+export async function render(
   req: http:IncomingMessage,
   res: http:ServerResponse,
-  template?: string,
-  manifest?: Record<string, string[]>
-) => Promise<string | void> | string | void
-
-export function render(req: http:IncomingMessage, res: http:ServerResponse) {
-  // render the app, refer to your framework documentation
+  template: string,
+  manifest: Record<string, string[]>) {
+  // ...
 }
 ```
+
+There is also an alternative version used by the plugin in order to render SSG targets `renderVite`, the function should accept just the url and return a string, it can also accept the manifest and template just like the above.
+
+And example would be:
+
+```ts
+// src/entry-server.ts
+import manifest from 'ssr:manifest'
+import template from 'ssr:template'
+
+export async function renderVite(url: string) {
+  const { app, router } = createApp()
+
+  router.push(url)
+  await router.isReady()
+
+  const ctx = {}
+  const html = await renderToString(app, ctx)
+
+  const preloadLinks = renderPreloadLinks(ctx.modules, manifest)
+
+  // return a string
+  return template
+    .replace(`<!--preload-links-->`, preloadLinks)
+    .replace(`<!--app-html-->`, appHtml)
+}
+```
+
+## With backend code
 
 In case you need a special rendering function or custom logic that match your backend code:
 
@@ -50,9 +84,10 @@ In case you need a special rendering function or custom logic that match your ba
 // vite.config.ts
 export default defineConfig({
   plugins: [armonia({
+    target: 'ssr',
     ssr: {
-      render({ req, res, template, manifest, ssr }) { // ssr is what you have exported
-        const app = ssr.render(req, template, manifest)
+      async render({ req, res, template, manifest, ssr }) { // ssr is what you have exported
+        const app = await ssr.render(req, template, manifest)
 
         // no return, the plugin will assume you have handle the rendering
         pipeToNodeWritable(app, {}, res)
@@ -71,9 +106,71 @@ export default defineConfig({
 
 It is important to remember that, Armonia is trying to provide a bare minimum set of functionality to allow you to express yourself however you want, therefore it's up to you to handle your specific case.
 
+An example to use the generated SSR code in express:
+
+```ts
+const express = require('express')
+const app = express.createServer()
+const { render } = require('./dist/entry-server.js')
+
+app.get('*', async function(req, res, next) {
+    try {
+      // 1. render the app HTML.
+      const html = await render(req, res);
+
+      // 2. Send the rendered HTML back.
+      res.status(200).set({ "Content-Type": "text/html" }).end(html);
+    } catch (e) {
+      console.error(e);
+      res.status(500).end();
+    }
+})
+```
+
 ## Building a single file
 
 Following the official Vite documentation, you can generate a single SSR file that is fully embedded, Armonia offer a build in way to extend this even further by allowing you to embed the generated ssr-manifest and html.
+
+Adjust the vite settings, [find out more](https://github.com/vitejs/vite/blob/main/packages/playground/ssr-vue/vite.config.noexternal.js),
+note we are overwriting the config using Armonia, thus this settings will be exclusively used only apply when building an ssr target.
+
+```ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { armonia, minify } from '@armonia/vite'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    armonia({
+      target: 'ssr',
+      ssr: {
+        transformTemplate: minify(), // optional, this will minify index.html
+        writeManifest: false, // if we are using ssr:manifest and ssr:template
+        config: {
+          ssr: {
+            noExternal: /./
+          },
+          resolve: {
+            // necessary because vue.ssrUtils is only exported on cjs modules
+            alias: [
+              {
+                find: '@vue/runtime-dom',
+                replacement: '@vue/runtime-dom/dist/runtime-dom.cjs.js'
+              },
+              {
+                find: '@vue/runtime-core',
+                replacement: '@vue/runtime-core/dist/runtime-core.cjs.js'
+              }
+            ]
+          }
+        }
+      }
+    })
+  ]
+})
+
+```
 
 Import `ssr:manifest` and `ssr:template` in your render function
 
@@ -96,7 +193,7 @@ export async function render(req: http:IncomingMessage) {
 }
 ```
 
-Those imports contains the `index.html` source text and the manifest object `{}`,
+Those imports contains the `index.html` source text and the manifest object `{}`.
 
 Note that the ssr manifest does not exists when developing, so be aware that when you reload the page during development you will see a flash of unstyled content.
 
@@ -125,6 +222,7 @@ declare module 'ssr:template' {
 
 ```ts
 armonia({
+  target: 'ssr',
   ssr: {
     writeManifest: false, // disable the generation of index.html and ssr-manifest.json
     config: {
@@ -171,16 +269,9 @@ const path = require("path");
 const express = require("express");
 const compression = require("compression");
 const serveStatic = require("serve-static");
+const { render } = require("./dist/entry-server.js");
 
 async function createServer() {
-  // the dist folder
-  const root = "dist";
-
-  const resolveRoot = (p) => path.resolve(__dirname, root, p);
-
-  // load the server entry .render is the function you export
-  const render = require(resolveRoot("entry-server.js")).render;
-
   const app = express();
   app.disable("x-powered-by");
 
@@ -188,7 +279,7 @@ async function createServer() {
 
   // serve the public dir, by default is www for this plugin
   app.use(
-    serveStatic(resolve("www"), {
+    serveStatic("./dist/www", {
       index: false,
       maxAge: "365d",
       lastModified: false,
@@ -198,7 +289,7 @@ async function createServer() {
   app.use("*", async (req, res) => {
     try {
       // 1. render the app HTML.
-      const html = await render(req);
+      const html = await render(req, res);
 
       // 2. Send the rendered HTML back.
       res.status(200).set({ "Content-Type": "text/html" }).end(html);
@@ -224,6 +315,7 @@ The plugin disable minification of the ssr output as the code is running on your
 
 ```js
 armonia({
+  target: 'ssr',
   ssr: {
     config: {
       build: {
@@ -240,6 +332,7 @@ If you do not want this plugin to build automatically, opt out with:
 
 ```js
 armonia({
+  target: 'ssr',
   ssr: {
     config: false
   }
@@ -260,6 +353,8 @@ It will then build the ssr target as normal, moving the `index.html` and `ssr-ma
 
 This is done in order to have a clean static folder that can be served without accidentally expose the manifest or the raw html template.
 
+As a result of this, the static files resides in the folder `dist/www` by default, while the ssr code is on `dist/server-entry.js`.
+
 ### Reset options
 
 The plugin will reset the `entryFileNames` when building in production but only for the server side code, your client side code is untouched.
@@ -270,6 +365,7 @@ You need to explicitly set this option again in the ssr plugin if you want a cus
 
 ```js
 armonia({
+  target: 'ssr',
   ssr: {
     config: {
       build: {
@@ -296,6 +392,7 @@ The default minifier included in this plugin is quite aggressive without asking 
 import { minify } from '@armonia/vite'
 
 armonia({
+  target: 'ssr',
   ssr: {
     transformTemplate: minify()
   }
@@ -325,4 +422,4 @@ As right now, this is the only major issue you might encounter, but remember tha
 
 Do a reload test with the bundled output to see how final result looks like.
 
-Refer to the section [Preview the output](#preview-the-output) to start a preview srr server.
+Refer to the section [Preview the output](#preview-the-output) on how to start a production ready preview server.
