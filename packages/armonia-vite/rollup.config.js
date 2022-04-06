@@ -192,14 +192,12 @@ export default defineConfig({
         description: packageJson.description,
         version: packageJson.version,
         license: packageJson.license,
-        keywords: packageJson.keywords,
-        engines: packageJson.engines,
         bin: {
           'armonia-vite': 'bin/armonia-vite.js'
         },
-        files: ['bin'],
         main: 'index.js',
         types: 'index.d.ts',
+        files: ['bin'],
         exports: {
           '.': {
             require: './index.js',
@@ -207,7 +205,12 @@ export default defineConfig({
           },
           './package.json': './package.json'
         },
+        keywords: packageJson.keywords,
+        engines: packageJson.engines,
+        repository: packageJson.repository,
+        homepage: packageJson.homepage,
         dependencies: {
+          cac: packageJson.devDependencies.cac,
           picocolors: packageJson.devDependencies.picocolors
         },
         peerDependencies: packageJson.peerDependencies,
@@ -216,5 +219,5 @@ export default defineConfig({
     })
   ],
 
-  external: ['fs', 'path', 'http', 'child_process'].concat(Object.keys(packageJson.devDependencies))
+  external: ['fs', 'path', 'http', 'child_process'].concat(Object.keys(packageJson.peerDependencies))
 })

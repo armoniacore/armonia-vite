@@ -240,6 +240,10 @@ export async function buildElectron(config: InlineConfig, electronConfig?: Elect
             pkg.devDependencies.electron = trim(pkg.devDependencies.electron, '^')
           }
 
+          if (options?.transformPackageJson) {
+            await options?.transformPackageJson(pkg)
+          }
+
           // emit the file
           this.emitFile({
             type: 'asset',

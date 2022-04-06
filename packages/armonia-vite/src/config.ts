@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from 'http'
-import type { UserConfigExport } from 'vite'
 import type { Configuration as ElectronBuilderConfig } from 'electron-builder'
 import type { Options as ElectronPackagerConfig } from 'electron-packager'
 import type { UserConfig, SSROptions } from 'vite'
@@ -83,12 +82,12 @@ export interface ElectronOptions {
   /**
    * Fine tune the generated `package.json`
    */
-  transformPackageJson?: (pkg: PackageJson) => void | Promise<void> | PackageJson | Promise<PackageJson>
+  transformPackageJson?: (pkg: PackageJson) => void | Promise<void>
 
   /**
    * Overwrite the vite config.
    */
-  config?: UserConfigExport
+  config?: UserConfig
 }
 
 export interface SSRRenderContext<TModule = any> {
@@ -108,7 +107,7 @@ export interface SSRRenderContext<TModule = any> {
   manifest: Manifest
 }
 
-export interface SSRPluginOptions<TModule = any> {
+export interface SSRPluginOptions {
   /** Set the default ssr input, will have no effect when build.ssr is used. */
   ssr?: boolean | string
 
@@ -139,7 +138,7 @@ export interface SSRPluginOptions<TModule = any> {
   /**
    * The ssr render function.
    */
-  render?: (context: SSRRenderContext<TModule>) => Promise<string | void> | string | void
+  render?: <TModule = any>(context: SSRRenderContext<TModule>) => Promise<string | void> | string | void
 }
 
 export type Target =
