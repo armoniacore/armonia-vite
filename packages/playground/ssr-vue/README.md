@@ -1,4 +1,4 @@
-# Vue 3 + Typescript + Vite + SSR
+# SSR Vite
 
 Start with a [vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project):
 
@@ -141,6 +141,29 @@ export async function render(): Promise<string> {
   const preloadLinks = renderPreloadLinks(ctx.modules, manifest)
 
   // inject the template
-  return template.replace('</head>', `${preloadLinks}</head>`).replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`)
+  return template
+    .replace('</head>', `${preloadLinks}</head>`)
+    .replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`)
 }
+```
+
+Run vite as usual:
+
+```bash
+pnpm run dev
+```
+
+Build:
+
+Make sure you run the build with the appropriate ssr flag.
+
+```json
+// package.json
+"scripts": {
+  "build": "vite build --ssr src/entry-server.ts",
+}
+```
+
+```bash
+pnpm run build
 ```

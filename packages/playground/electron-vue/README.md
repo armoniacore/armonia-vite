@@ -1,4 +1,4 @@
-# # Vue 3 + Typescript + Vite + Electron
+# Electron Vite
 
 Start with a [vite project](https://vitejs.dev/guide/#scaffolding-your-first-vite-project):
 
