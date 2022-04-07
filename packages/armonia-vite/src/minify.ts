@@ -1,3 +1,5 @@
+import picocolors from 'picocolors'
+
 /**
  * Creates a ready-to-use html minifier based on `html-minifier-terser`
  *
@@ -47,7 +49,7 @@ export default function minify(): (value: string) => Promise<string> {
     try {
       minify = (await import('html-minifier-terser')).minify
     } catch {
-      console.log(`'html-minifier-terser' is required for minify the html, the html will not be minified.`)
+      console.warn(picocolors.yellow(`'html-minifier-terser' is required for minify the html, the html will not be minified.`))
 
       return html
     }

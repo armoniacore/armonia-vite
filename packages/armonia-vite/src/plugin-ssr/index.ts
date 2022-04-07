@@ -1,49 +1,11 @@
 import fs from 'fs'
 import path from 'path'
-import picocolors from 'picocolors'
-import type { Plugin, ResolvedConfig } from 'vite'
-import { mergeConfig, send, build, normalizePath } from 'vite'
+import type { Plugin, ResolvedConfig, UserConfig, ConfigEnv } from 'vite'
+import { mergeConfig, send, build } from 'vite'
 import type { SSRPluginOptions, Manifest } from '../config'
-
-// from vite
-function emptyDir(dir: string, skip?: string[]): void {
-  for (const file of fs.readdirSync(dir)) {
-    if (skip?.includes(file)) {
-      continue
-    }
-
-    const abs = path.resolve(dir, file)
-
-    // baseline is Node 12 so can't use rmSync :(
-    if (fs.lstatSync(abs).isDirectory()) {
-      emptyDir(abs)
-      fs.rmdirSync(abs)
-    } else {
-      fs.unlinkSync(abs)
-    }
-  }
-}
-
-// from vite
-function prepareOutDir(outDir: string, emptyOutDir: boolean | null | undefined, config: ResolvedConfig) {
-  if (fs.existsSync(outDir)) {
-    if (emptyOutDir == null && !normalizePath(outDir).startsWith(config.root + '/')) {
-      // warn if outDir is outside of root
-      config.logger.warn(
-        picocolors.yellow(
-          `\n${picocolors.bold(`(!)`)} outDir ${picocolors.gray(outDir)} is not inside project root and will not be emptied.\n` +
-            `Use --emptyOutDir to override.\n`
-        )
-      )
-    } else if (emptyOutDir !== false) {
-      emptyDir(outDir, ['.git'])
-    }
-  }
-}
-
-function info(logger: { info: (value: string) => void }, name: string, value: string) {
-  logger.info(`${picocolors.cyan(name)} ${picocolors.green(value)}`)
-}
+import { ok } from '../common/log'
+import type { RollupOutput } from 'rollup'
+import { trimAny } from '../common/trim'
 
 /**
  * The vite ssr plugin, it apply a middleware to the vite dev server that allow development under ssr without leaving vite.
@@ -53,10 +15,12 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
   const SSR_TEMPLATE_NAME = /* options?.manifestId || */ 'ssr:template'
 
   let generateSSRBuild = false
-  let emptyOutDir: boolean | null | undefined = null
   let resolvedConfig: ResolvedConfig
   let manifestSource: Manifest = {}
   let templateSource = ''
+  let mode: ConfigEnv['mode']
+
+  let bundled: RollupOutput | undefined = undefined
 
   async function applyManifestTransformation() {
     let manifest: unknown = await options?.transformManifest?.call(undefined, manifestSource)
@@ -85,55 +49,81 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
     enforce: 'post',
 
     config(config, env) {
+      mode = env.mode
+
       if (options?.config === false) {
         return
       }
 
-      // run only on production build SSR
-      if (env.mode !== 'production' || env.command !== 'build' || typeof config.build?.ssr !== 'string') {
+      if (env.mode !== 'production' || env.command !== 'build') {
+        // run only on production build SSR
+        return options?.config
+      }
+
+      // ssr is explicitly disabled
+      if (config.build?.ssr === false) {
         return
       }
 
-      info(console, 'SSR build', `building SSR bundle for ${env.mode}...`)
+      let ssr1 = config.build?.ssr || options?.ssr
+
+      // ssr is explicitly disabled
+      if (ssr1 === false) {
+        return
+      }
+
+      if (!ssr1) {
+        const root = config.root || process.cwd()
+
+        if (fs.existsSync(path.resolve(root, 'src/entry-server.ts'))) {
+          ssr1 = 'src/entry-server.ts'
+        }
+
+        if (fs.existsSync(path.resolve(root, 'src/entry-server.js'))) {
+          ssr1 = 'src/entry-server.js'
+        }
+      }
+
+      if (!ssr1) {
+        return
+      }
 
       generateSSRBuild = true
 
-      // we need to build twice on the same folder, therefore we must do
-      // the cleanup process manually
-      emptyOutDir = config.build?.emptyOutDir
+      let ssrConfig: UserConfig = {
+        // this config will reset some common vite spa config
+        // we do not need them in ssr most of the time
+        build: {
+          ssr: ssr1,
 
-      // we need to merge twice as publicDir and emptyOutDir *MUST* be set to false
-      return mergeConfig(
-        mergeConfig(
-          {
-            // this config will reset some common vite spa config
-            // we do not need them in ssr most of the time
-            build: {
-              // cssCodeSplit: false,
-              minify: false,
+          // do not minify server side code
+          minify: false,
 
-              // this will preserve the original file name
-              rollupOptions: {
-                output: {
-                  // format: 'esm',
-                  entryFileNames: '[name].js'
-                }
-              }
+          // this will preserve the original file name
+          rollupOptions: {
+            output: {
+              // format: 'esm',
+              entryFileNames: '[name].js'
             }
-          },
-          options?.config || {}
-        ),
-        {
-          publicDir: false, // the client will do this
-          build: {
-            emptyOutDir: false // or we delete the client files
           }
         }
-      )
+      }
+
+      // prepare the config
+      ssrConfig = mergeConfig(ssrConfig, options?.config || {})
+
+      // the client will do this
+      ssrConfig.publicDir = false
+
+      return ssrConfig
     },
 
     configResolved(config) {
       resolvedConfig = config
+
+      if (generateSSRBuild) {
+        ok(config.logger, `building SSR bundle for ${mode}...`)
+      }
     },
 
     transformIndexHtml: {
@@ -189,12 +179,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         ssrModule = 'src/entry-server.ts'
       }
 
-      // const ssrModule = typeof ssrInput === 'string' ? ssrInput : undefined
-      // // no ssr module
-      // if (!ssrModule) {
-      //   server.config.logger.warn(picocolors.red('ssr module missing'))
-      //   return undefined
-      // }
+      // let vite warn the user when the ssr module is not found
 
       // see: https://vitejs.dev/guide/api-plugin.html#configureserver
       // runs after internal middlewares are installed
@@ -228,7 +213,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
                 template = templateSource
 
                 // load the ssr module
-                const ssr = (await server.ssrLoadModule(ssrModule)) as any
+                const ssr = await server.ssrLoadModule(ssrModule)
 
                 let renderedTemplate
 
@@ -275,70 +260,75 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         return
       }
 
-      info(console, 'SSR build', `generating the SSR target...`)
+      ok(resolvedConfig.logger, `generating the SSR target...`)
 
-      if (resolvedConfig.build.write) {
-        prepareOutDir(path.resolve(resolvedConfig.root, resolvedConfig.build.outDir), emptyOutDir, resolvedConfig)
-      }
-
-      const outDir = path.resolve(
-        // resolve the out dir from the config
-        path.resolve(resolvedConfig.root, resolvedConfig.build.outDir),
-
-        // use the public directory name as the out dir
-        path.basename(/*options?.clientDir || resolvedConfig.publicDir ||*/ 'www')
-      )
-
-      await build({
+      bundled = (await build({
         configFile: resolvedConfig.configFile || false,
         build: {
-          outDir,
+          write: false,
           ssr: false,
           ssrManifest: true
         }
-      })
+      })) as RollupOutput
 
-      let template: string | undefined
-      let ssrManifest: string | undefined
+      const ssrManifestFileName =
+        typeof resolvedConfig.build.ssrManifest === 'string' ? resolvedConfig.build.ssrManifest : 'ssr-manifest.json'
 
-      // get the ssr manifest file name
-      const ssrManifestFile = path.resolve(outDir, 'ssr-manifest.json')
+      for (const chunk of bundled.output) {
+        if (chunk.type === 'asset' && chunk.fileName === ssrManifestFileName) {
+          manifestSource = JSON.parse(chunk.source as string)
+          await applyManifestTransformation()
+          continue
+        }
 
-      // get the index html file name
-      const input: unknown = resolvedConfig.build.rollupOptions?.input || 'index.html'
-
-      // only accept .html files as a template
-      const templateFile = typeof input === 'string' && input.endsWith('.html') ? path.resolve(outDir, input) : undefined
-
-      // read the ssr manifest
-      if (ssrManifestFile && fs.existsSync(ssrManifestFile)) {
-        ssrManifest = fs.readFileSync(ssrManifestFile, 'utf-8')
-        fs.unlinkSync(ssrManifestFile)
-
-        manifestSource = JSON.parse(ssrManifest)
-        await applyManifestTransformation()
-
-        if (options?.writeManifest !== false) {
-          const fn = path.basename(ssrManifestFile)
-          fs.writeFileSync(
-            path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, fn),
-            JSON.stringify(manifestSource, null, 2),
-            'utf-8'
-          )
+        if (chunk.type === 'asset' && chunk.fileName === 'index.html') {
+          templateSource = chunk.source as string
+          await applyTemplateTransformation()
+          continue
         }
       }
+    },
 
-      // read the template
-      if (templateFile && fs.existsSync(templateFile)) {
-        template = fs.readFileSync(templateFile, 'utf-8')
-        fs.unlinkSync(templateFile)
+    generateBundle() {
+      if (!bundled) {
+        return
+      }
 
-        templateSource = template
-        await applyTemplateTransformation()
+      const serverRoot = trimAny(options?.serverRoot || 'www', ['.', '/', '\\']) || 'www'
 
-        if (options?.writeManifest !== false) {
-          const fn = path.basename(templateFile)
-          fs.writeFileSync(path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, fn), templateSource, 'utf-8')
+      const ssrManifestFileName =
+        typeof resolvedConfig.build.ssrManifest === 'string' ? resolvedConfig.build.ssrManifest : 'ssr-manifest.json'
+
+      const templateFileName =
+        typeof resolvedConfig.build.rollupOptions.input === 'string' ? resolvedConfig.build.rollupOptions.input : 'index.html'
+
+      for (const chunk of bundled.output) {
+        if (chunk.type === 'asset' && (chunk.fileName === ssrManifestFileName || chunk.fileName === templateFileName)) {
+          if (options?.writeManifest === true) {
+            this.emitFile({
+              type: 'asset',
+              fileName: chunk.fileName,
+              source: chunk.source
+            })
+          }
+
+          continue
+        }
+
+        if (chunk.type === 'asset') {
+          this.emitFile({
+            type: 'asset',
+            fileName: `${serverRoot}/${chunk.fileName}`,
+            source: chunk.source
+          })
+        }
+
+        if (chunk.type === 'chunk') {
+          this.emitFile({
+            type: 'asset',
+            fileName: `${serverRoot}/${chunk.fileName}`,
+            source: chunk.code
+          })
         }
       }
     },

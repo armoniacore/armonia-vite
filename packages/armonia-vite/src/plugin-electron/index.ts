@@ -1,73 +1,20 @@
 import fs from 'fs'
 import path from 'path'
-import picocolors from 'picocolors'
-import type { PluginContext, RollupOutput, RollupWatcher } from 'rollup'
-import type { ConfigEnv, Plugin, ResolvedConfig, ViteDevServer } from 'vite'
+import type { RollupWatcher } from 'rollup'
+import type { ConfigEnv, Plugin, ResolvedConfig, UserConfig, ViteDevServer } from 'vite'
 import { buildElectron } from './build'
 import type { ElectronProcess } from './run'
 import { runElectron } from './run'
 import type { Options as ElectronPackagerConfig } from 'electron-packager'
 import type { PackageJson, ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions } from '../config'
 import { mergeConfig } from 'vite'
+import { warn, ok } from '../common/log'
+import { resolveAddress } from '../common/resolve_address'
+import { emitBundle } from '../common/emit_bundle'
 
 export { PackageJson, ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions }
 
 type ElectronPackager = (opts: ElectronPackagerConfig) => Promise<string[]>
-
-function resolveAddress(server: ViteDevServer): URL {
-  const address = server.httpServer?.address()
-
-  if (address) {
-    // string address
-    if (typeof address === 'string') {
-      return new URL(address)
-    }
-
-    const host = address.address === '127.0.0.1' ? 'localhost' : address.address
-
-    return new URL(`http://${host}:${address.port}`)
-  }
-
-  const port = server.config.server.port || 3000
-
-  return new URL(`http://localhost:${port}`)
-}
-
-type Bundle = RollupOutput | RollupOutput[] | RollupWatcher
-
-function emitBundle(ctx: PluginContext, bundle: Bundle) {
-  function emit(bundle: Bundle): RollupOutput[] {
-    if (Array.isArray(bundle)) {
-      return bundle
-    }
-
-    if (bundle && Array.isArray((bundle as unknown as RollupOutput).output)) {
-      return [bundle as unknown as RollupOutput]
-    }
-
-    return []
-  }
-
-  for (const { output } of emit(bundle)) {
-    for (const chunk of output) {
-      if (chunk.type === 'asset') {
-        ctx.emitFile({
-          type: 'asset',
-          fileName: chunk.fileName,
-          source: chunk.source
-        })
-      }
-
-      if (chunk.type === 'chunk') {
-        ctx.emitFile({
-          type: 'asset',
-          fileName: chunk.fileName,
-          source: chunk.code
-        })
-      }
-    }
-  }
-}
 
 function createRunner(options?: ElectronOptions) {
   let electron: ElectronProcess | undefined
@@ -128,37 +75,33 @@ export default function electron(options?: ElectronOptions): Plugin {
     config(_, env) {
       command = env.command
 
-      // TODO: apply options.config
-      if (command === 'build') {
-        return mergeConfig(options?.config || {}, {
-          base: './', // critical or we cant build properly
-          define: {
-            'import.meta.env.ELECTRON': true
-          }
-        })
-      }
-
-      return mergeConfig(options?.config || {}, {
+      const electronConfig: UserConfig = {
         define: {
           'import.meta.env.ELECTRON': true
         }
-      })
+      }
+
+      // critical or we cant build properly
+      if (command === 'build') {
+        electronConfig.base = './'
+      }
+
+      return mergeConfig(options?.config || {}, electronConfig)
     },
 
     configResolved(config) {
+      resolvedConfig = config
+
       if (command === 'build') {
         // electron resolve the path relative to the file system
         // vite build uses / which will result in electron loading index.html and assets from the OS root
         if (config.base !== './') {
-          config.logger.warn(
-            picocolors.yellow(
-              `config.base must be './' when building electron, '${config.base}' provided instead, the output could not work as expected.`
-            )
+          warn(
+            config.logger,
+            `config.base must be './' when building electron, '${config.base}' provided instead, the output could not work as expected.`
           )
         }
       }
-
-      resolvedConfig = config
     },
 
     async configureServer(server) {
@@ -185,10 +128,8 @@ export default function electron(options?: ElectronOptions): Plugin {
         return
       }
 
-      // TODO: colors are confusing, we use the same color as vite and that can cause confusions when reading the output
-      resolvedConfig.logger.info(
-        `\n\n${picocolors.cyan('armonia')} ${picocolors.green(`building electron for ${resolvedConfig.mode}...`)}\n`
-      )
+      // notify we are building electron
+      ok(resolvedConfig.logger, `building electron assets for ${resolvedConfig.mode}...`)
 
       const bundle = await buildElectron(
         {
@@ -236,6 +177,9 @@ export default function electron(options?: ElectronOptions): Plugin {
       }
 
       if (bundler === 'builder') {
+        // notify we are bundling electron
+        ok(resolvedConfig.logger, `bundling electron with electron-${bundler}...`)
+
         const { build } = await import('electron-builder')
 
         const builderOptions = options?.builder || {}
@@ -245,6 +189,9 @@ export default function electron(options?: ElectronOptions): Plugin {
           config: builderOptions
         })
       } else if (bundler === 'packager') {
+        // notify we are bundling electron
+        ok(resolvedConfig.logger, `bundling electron with electron-${bundler}...`)
+
         const electronPackager = (await import('electron-packager')) as unknown as ElectronPackager
 
         const packagerOptions = options?.packager || {}
@@ -255,7 +202,7 @@ export default function electron(options?: ElectronOptions): Plugin {
           out
         })
       } else {
-        resolvedConfig.logger.warn("no electron bundler found, install either 'electron-builder' or 'electron-packager'")
+        warn(resolvedConfig.logger, "no electron bundler found, install either 'electron-builder' or 'electron-packager'")
       }
     }
   }

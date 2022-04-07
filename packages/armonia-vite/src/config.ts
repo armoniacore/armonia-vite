@@ -113,6 +113,8 @@ export interface SSRFile {
 }
 
 export interface SSRPluginOptions {
+  serverRoot?: string
+
   ssg?: boolean
 
   /** Set the default ssr input, will have no effect when build.ssr is used. */
@@ -125,13 +127,13 @@ export interface SSRPluginOptions {
   // templateId?: string
 
   /**
-   * Overwrite vite config when building for production
+   * Overwrite the vite config.
    */
   config?: UserConfig & {
     ssr?: SSROptions
   }
 
-  /** false to disable the output of ssr-manifest.json and index.html file */
+  /** true to enable the output of ssr-manifest.json and index.html file */
   writeManifest?: boolean
 
   transformManifest?: (manifest: Manifest) => Promise<Manifest | void> | Manifest | void
