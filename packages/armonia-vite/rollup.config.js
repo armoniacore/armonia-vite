@@ -202,10 +202,10 @@ export default defineConfig({
         engines: packageJson.engines,
         repository: packageJson.repository,
         homepage: packageJson.homepage,
-        dependencies: {
-          cac: packageJson.devDependencies.cac,
-          picocolors: packageJson.devDependencies.picocolors
-        },
+        // dependencies: {
+        //   cac: packageJson.devDependencies.cac,
+        //   picocolors: packageJson.devDependencies.picocolors
+        // },
         peerDependencies: packageJson.peerDependencies,
         peerDependenciesMeta: packageJson.peerDependenciesMeta
       }
