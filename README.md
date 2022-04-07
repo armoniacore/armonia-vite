@@ -7,6 +7,7 @@ Almost bare metal, Armonia allows you to develop and build application across mu
 It currently supports:
 
 - SSR
+- SSG (preview)
 - Electron
 
 Read the [documentation](https://vite.armoniacore.com/) or explore the [examples](/packages/playground/)

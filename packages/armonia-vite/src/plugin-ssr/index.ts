@@ -341,6 +341,54 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
           fs.writeFileSync(path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, fn), templateSource, 'utf-8')
         }
       }
+    },
+
+    async closeBundle() {
+      if (!generateSSRBuild) {
+        return
+      }
+
+      if (options?.ssg !== true) {
+        return
+      }
+
+      const outDir = path.resolve(
+        // resolve the out dir from the config
+        path.resolve(resolvedConfig.root, resolvedConfig.build.outDir),
+
+        // use the public directory name as the out dir
+        path.basename(/*options?.clientDir || resolvedConfig.publicDir ||*/ 'www')
+      )
+
+      // get the ssr module
+      let ssrInput: unknown = options?.ssr || resolvedConfig.build?.ssr
+
+      // as documented at https://vitejs.dev/config/#build-ssr
+      if (ssrInput === true) {
+        ssrInput = resolvedConfig.build?.rollupOptions?.input
+      }
+
+      if (typeof ssrInput === 'string') {
+        ssrInput = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, `${path.parse(ssrInput).name}.js`)
+      }
+
+      if (typeof ssrInput === 'string') {
+        const ssrEntryPath = path.resolve(resolvedConfig.root, ssrInput)
+
+        if (fs.existsSync(ssrEntryPath)) {
+          const ssr = require(ssrEntryPath)
+
+          const files = await options?.staticRender?.call(undefined, ssr, resolvedConfig)
+          if (files) {
+            for (const file of files) {
+              const id = file.id
+              const html = file.code
+
+              fs.writeFileSync(path.join(outDir, id), html, 'utf-8')
+            }
+          }
+        }
+      }
     }
   }
 }

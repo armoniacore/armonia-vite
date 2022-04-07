@@ -7,6 +7,7 @@ import type {
   ElectronBuilderOptions,
   PackageJson,
   SSRRenderContext,
+  SSRFile,
   Manifest
 } from './config'
 import type { Plugin } from 'vite'
@@ -24,22 +25,43 @@ export {
   PackageJson,
   Manifest,
   SSRRenderContext,
+  SSRFile,
   minify,
   electron,
   ssr
 }
 
+interface TargetTriple {
+  mode: string
+  sys: string | null
+}
+
+function parseTarget(value?: string): TargetTriple {
+  const targets = (value || '').split('-')
+
+  const mode = targets[0] || 'spa'
+  const sys = targets[1] || null
+
+  return {
+    mode,
+    sys
+  }
+}
+
 export function armonia(options?: Options): Plugin {
-  const target = options?.target || (process.env['ARMONIA_TARGET'] as Target) || 'spa'
+  options = options || {}
 
-  const targets = target.split('-')
+  const { mode } = parseTarget(options?.target || process.env['ARMONIA_TARGET'])
 
-  if (targets[0] === 'electron') {
-    return electron(options?.electron)
+  if (mode === 'electron') {
+    return electron(options.electron)
   }
 
-  if (targets[0] === 'ssr') {
-    return ssr(options?.ssr)
+  if (mode === 'ssr' || mode === 'ssg') {
+    options.ssr = options.ssr || {}
+    options.ssr.ssg = mode === 'ssg'
+
+    return ssr(options.ssr)
   }
 
   return {

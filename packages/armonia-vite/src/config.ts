@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http'
 import type { Configuration as ElectronBuilderConfig } from 'electron-builder'
 import type { Options as ElectronPackagerConfig } from 'electron-packager'
-import type { UserConfig, SSROptions } from 'vite'
+import type { UserConfig, SSROptions, ResolvedConfig } from 'vite'
 
 export type Manifest = Record<string, string[]>
 export type PackageJson = Record<string, any>
@@ -91,14 +91,14 @@ export interface ElectronOptions {
 }
 
 export interface SSRRenderContext<TModule = any> {
+  /** The ssr module that has been resolved by vite. */
+  ssr: TModule
+
   /** The server request. */
   req: IncomingMessage
 
   /** The server response. */
   res: ServerResponse
-
-  /** The ssr module that has been resolved by vite. */
-  ssr: TModule
 
   /** The html template string. */
   template: string
@@ -107,7 +107,14 @@ export interface SSRRenderContext<TModule = any> {
   manifest: Manifest
 }
 
+export interface SSRFile {
+  id: string
+  code: string
+}
+
 export interface SSRPluginOptions {
+  ssg?: boolean
+
   /** Set the default ssr input, will have no effect when build.ssr is used. */
   ssr?: boolean | string
 
@@ -139,6 +146,8 @@ export interface SSRPluginOptions {
    * The ssr render function.
    */
   render?: <TModule = any>(context: SSRRenderContext<TModule>) => Promise<string | void> | string | void
+
+  staticRender?: <TModule = any>(ssr: TModule, config: ResolvedConfig) => Promise<SSRFile[]> | Promise<void> | SSRFile[] | void
 }
 
 export type Target =
