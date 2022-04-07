@@ -1,23 +1,11 @@
-import type {
-  Options,
-  Target,
-  ElectronOptions,
-  SSRPluginOptions,
-  ElectronPackagerOptions,
-  ElectronBuilderOptions,
-  PackageJson,
-  SSRRenderContext,
-  SSRFile,
-  Manifest
-} from './config'
 import type { Plugin } from 'vite'
+import type { SSRPluginOptions, SSRRenderContext, SSRFile, Manifest } from './plugin-ssr'
+import type { ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions, PackageJson } from './config'
+import minify from './minify'
 import electron from './plugin-electron'
 import ssr from './plugin-ssr'
-import minify from './minify'
 
 export {
-  Options,
-  Target,
   ElectronOptions,
   SSRPluginOptions,
   ElectronPackagerOptions,
@@ -29,6 +17,25 @@ export {
   minify,
   electron,
   ssr
+}
+
+export type Target =
+  | 'spa'
+  | 'pwa'
+  | 'ssr'
+  | 'ssr-pwa'
+  | 'ssg'
+  | 'electron'
+  | 'capacitor-ios'
+  | 'capacitor-android'
+  | 'bex-chromium'
+  | 'bex-firefox'
+  | 'bex-edge'
+
+export interface Options {
+  target?: Target
+  electron?: ElectronOptions
+  ssr?: SSRPluginOptions
 }
 
 interface TargetTriple {

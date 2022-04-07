@@ -156,6 +156,10 @@ export default function electron(options?: ElectronOptions): Plugin {
         return
       }
 
+      if (options?.bundler === false) {
+        return
+      }
+
       let packageJson: Record<string, any> = {}
 
       const packageJsonFile = path.resolve(resolvedConfig.root, options?.packageJson || './package.json')

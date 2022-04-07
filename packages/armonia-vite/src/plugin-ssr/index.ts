@@ -1,11 +1,75 @@
 import fs from 'fs'
 import path from 'path'
-import type { Plugin, ResolvedConfig, UserConfig, ConfigEnv } from 'vite'
+import type { IncomingMessage, ServerResponse } from 'http'
+import type { Plugin, ResolvedConfig, UserConfig, ConfigEnv, SSROptions } from 'vite'
 import { mergeConfig, send, build } from 'vite'
-import type { SSRPluginOptions, Manifest } from '../config'
 import { ok } from '../common/log'
 import type { RollupOutput } from 'rollup'
 import { trimAny } from '../common/trim'
+
+export type Manifest = Record<string, string[]>
+
+export interface SSRRenderContext<TModule = any> {
+  /** The ssr module that has been resolved by vite. */
+  ssr: TModule
+
+  /** The server request. */
+  req: IncomingMessage
+
+  /** The server response. */
+  res: ServerResponse
+
+  /** The html template string. */
+  template: string
+
+  /** The ssr manifest. */
+  manifest: Manifest
+}
+
+export interface SSRFile {
+  id: string
+  code: string
+}
+
+export interface SSRPluginOptions {
+  serverRoot?: string
+
+  ssg?: boolean
+
+  /** Set the default ssr input, will have no effect when build.ssr is used. */
+  ssr?: boolean | string
+
+  // /** Defaults to `ssr:manifest` */
+  // manifestId?: string
+
+  // /** Defaults to `ssr:template` */
+  // templateId?: string
+
+  /**
+   * Overwrite the vite config.
+   */
+  config?: UserConfig & {
+    ssr?: SSROptions
+  }
+
+  /** true to enable the output of ssr-manifest.json and index.html file */
+  writeManifest?: boolean
+
+  transformManifest?: (manifest: Manifest) => Promise<Manifest | void> | Manifest | void
+
+  /**
+   * Apply a transformation to the index.html file, note this will run after any vite just before render is called.
+   * It will not run when render is called.
+   */
+  transformTemplate?: (html: string) => Promise<string | void> | string | void
+
+  /**
+   * The ssr render function.
+   */
+  render?: <TModule = any>(context: SSRRenderContext<TModule>) => Promise<string | void> | string | void
+
+  staticRender?: <TModule = any>(ssr: TModule, config: ResolvedConfig) => Promise<SSRFile[]> | Promise<void> | SSRFile[] | void
+}
 
 /**
  * The vite ssr plugin, it apply a middleware to the vite dev server that allow development under ssr without leaving vite.

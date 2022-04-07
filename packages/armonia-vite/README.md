@@ -4,5 +4,6 @@
 
 - ⚛️ Electron
 - 📥 SSR
+- 📔 SSG
 
 [Read the documentation](https://vite.armoniacore.com/).
