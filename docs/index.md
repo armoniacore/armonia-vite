@@ -24,3 +24,5 @@ export default defineConfig({
 ```
 
 > Explore the [example projects](https://github.com/armoniacore/armonia-vite/tree/main/packages/playground)
+
+Or explore the [not so starter template](https://github.com/armoniacore/starter-template-vue-ts)

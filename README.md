@@ -10,7 +10,7 @@ It currently supports:
 - SSG (preview)
 - Electron
 
-Read the [documentation](https://vite.armoniacore.com/) or explore the [examples](/packages/playground/)
+Read the [documentation](https://vite.armoniacore.com/), explore the [examples](/packages/playground/) or take a look at the [not so starter project](https://github.com/armoniacore/starter-template-vue-ts)
 
 `pnpm i @armonia/vite`
 
