@@ -9,6 +9,12 @@ export default defineConfig({
     armonia({
       target: 'ssg',
       ssg: {
+        serverRoot: 'public',
+        config: {
+          build: {
+            outDir: 'dist-ssg'
+          }
+        },
         async staticRender({ render }) {
           const code = await render()
 

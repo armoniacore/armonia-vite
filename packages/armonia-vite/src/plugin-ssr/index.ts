@@ -1,6 +1,7 @@
 import fs from 'fs'
 import type { IncomingMessage, ServerResponse } from 'http'
 import path from 'path'
+import picocolors from 'picocolors'
 import type { RollupOutput } from 'rollup'
 import type { ConfigEnv, Plugin, ResolvedConfig, SSROptions, UserConfig } from 'vite'
 import { build, mergeConfig, send } from 'vite'
@@ -69,6 +70,35 @@ export interface SSGFile {
 }
 
 export interface SSGOptions {
+  serverRoot?: string
+
+  /** Set the default ssr input, will have no effect when build.ssr is used. */
+  ssr?: boolean | string
+
+  // /** Defaults to `ssr:manifest` */
+  // manifestId?: string
+
+  // /** Defaults to `ssr:template` */
+  // templateId?: string
+
+  /**
+   * Overwrite the vite config.
+   */
+  config?: UserConfig & {
+    ssr?: SSROptions
+  }
+
+  /** true to enable the output of ssr-manifest.json and index.html file */
+  writeManifest?: boolean
+
+  transformManifest?: (manifest: Manifest) => Promise<Manifest | void> | Manifest | void
+
+  /**
+   * Apply a transformation to the index.html file, note this will run after any vite just before render is called.
+   * It will not run when render is called.
+   */
+  transformTemplate?: (html: string) => Promise<string | void> | string | void
+
   staticRender?: (ssr: Record<string, any>, config: ResolvedConfig) => Promise<SSGFile[]> | Promise<void> | SSGFile[] | void
 }
 
@@ -131,12 +161,31 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
   const SSR_MANIFEST_NAME = /* options?.manifestId || */ 'ssr:manifest'
   const SSR_TEMPLATE_NAME = /* options?.manifestId || */ 'ssr:template'
 
+  if (ssgOptions) {
+    if (typeof ssgOptions.serverRoot !== 'undefined') {
+      options.serverRoot = ssgOptions.serverRoot
+    }
+    if (typeof ssgOptions.ssr !== 'undefined') {
+      options.ssr = ssgOptions.ssr
+    }
+    if (typeof ssgOptions.writeManifest !== 'undefined') {
+      options.writeManifest = ssgOptions.writeManifest
+    }
+    if (typeof ssgOptions.transformManifest !== 'undefined') {
+      options.transformManifest = ssgOptions.transformManifest
+    }
+    if (typeof ssgOptions.transformTemplate !== 'undefined') {
+      options.transformTemplate = ssgOptions.transformTemplate
+    }
+
+    options.config = mergeConfig(options.config || {}, ssgOptions.config || {})
+  }
+
   let resolvedConfig: ResolvedConfig
   let manifestSource: Manifest = {}
   let templateSource = ''
   let command: ConfigEnv['command']
   let mode: ConfigEnv['mode']
-
   let bundled: RollupOutput | undefined
 
   async function applyManifestTransformation() {
@@ -410,7 +459,7 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
       }
     },
 
-    async closeBundle() {
+    async writeBundle(_, bundle) {
       if (command !== 'build' || typeof resolvedConfig.build.ssr !== 'string') {
         return
       }
@@ -419,41 +468,31 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
         return
       }
 
-      const outDir = path.resolve(
-        // resolve the out dir from the config
-        path.resolve(resolvedConfig.root, resolvedConfig.build.outDir),
+      const serverRoot = trimAny(options?.serverRoot || 'www', ['.', '/', '\\']) || 'www'
 
-        // use the public directory name as the out dir
-        path.basename(/*options?.clientDir || resolvedConfig.publicDir ||*/ 'www')
-      )
+      const rootDir = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir)
 
-      // get the ssr module
-      let ssrInput: unknown = options?.ssr || resolvedConfig.build?.ssr
+      // eslint-disable-next-line unicorn/prefer-module
+      const ssr = require(path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, Object.keys(bundle)[0]!))
 
-      // as documented at https://vitejs.dev/config/#build-ssr
-      if (ssrInput === true) {
-        ssrInput = resolvedConfig.build?.rollupOptions?.input
-      }
+      const files = await ssgOptions?.staticRender?.call(undefined, ssr, resolvedConfig)
 
-      if (typeof ssrInput === 'string') {
-        ssrInput = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, `${path.parse(ssrInput).name}.js`)
-      }
+      if (files) {
+        for (const file of files) {
+          const fileName = `${serverRoot}/${trimAny(file.id, ['.', '/', '\\'])}`
+          const source = file.code
 
-      if (typeof ssrInput === 'string') {
-        const ssrEntryPath = path.resolve(resolvedConfig.root, ssrInput)
+          this.emitFile({
+            type: 'asset',
+            fileName,
+            source
+          })
 
-        if (fs.existsSync(ssrEntryPath)) {
-          // eslint-disable-next-line unicorn/prefer-module
-          const ssr = require(ssrEntryPath)
+          const filePath = path.join(rootDir, fileName)
 
-          const files = await ssgOptions?.staticRender?.call(undefined, ssr, resolvedConfig)
-          if (files) {
-            for (const file of files) {
-              const id = file.id
-              const html = file.code
-
-              fs.writeFileSync(path.join(outDir, id), html, 'utf8')
-            }
+          if (path.relative(rootDir, filePath)) {
+            fs.writeFileSync(filePath, source, 'utf8')
+            resolvedConfig.logger.info(`${resolvedConfig.build.outDir}/${picocolors.green(fileName)}`)
           }
         }
       }
