@@ -1,23 +1,14 @@
 import type { Plugin } from 'vite'
-import type { SSRPluginOptions, SSRRenderContext, SSRFile, Manifest } from './plugin-ssr'
-import type { ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions, PackageJson } from './config'
-import minify from './minify'
+
+import type { ElectronOptions } from './config'
 import electron from './plugin-electron'
+import type { SSRPluginOptions } from './plugin-ssr'
 import ssr from './plugin-ssr'
 
-export {
-  ElectronOptions,
-  SSRPluginOptions,
-  ElectronPackagerOptions,
-  ElectronBuilderOptions,
-  PackageJson,
-  Manifest,
-  SSRRenderContext,
-  SSRFile,
-  minify,
-  electron,
-  ssr
-}
+export { type ElectronBuilderOptions, type ElectronOptions, type ElectronPackagerOptions, type PackageJson } from './config'
+export { default as minify } from './minify'
+export { default as electron } from './plugin-electron'
+export { type Manifest, type SSRFile, type SSRPluginOptions, type SSRRenderContext, default as ssr } from './plugin-ssr'
 
 export type Target =
   | 'spa'

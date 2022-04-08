@@ -1,10 +1,11 @@
 import fs from 'fs'
-import path from 'path'
 import type { IncomingMessage, ServerResponse } from 'http'
-import type { Plugin, ResolvedConfig, UserConfig, ConfigEnv, SSROptions } from 'vite'
-import { mergeConfig, send, build } from 'vite'
-import { ok } from '../common/log'
+import path from 'path'
 import type { RollupOutput } from 'rollup'
+import type { ConfigEnv, Plugin, ResolvedConfig, SSROptions, UserConfig } from 'vite'
+import { build, mergeConfig, send } from 'vite'
+
+import { ok } from '../common/log'
 import { trimAny } from '../common/trim'
 
 export type Manifest = Record<string, string[]>
@@ -84,7 +85,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
   let templateSource = ''
   let mode: ConfigEnv['mode']
 
-  let bundled: RollupOutput | undefined = undefined
+  let bundled: RollupOutput | undefined
 
   async function applyManifestTransformation() {
     let manifest: unknown = await options?.transformManifest?.call(undefined, manifestSource)
@@ -158,6 +159,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         // this config will reset some common vite spa config
         // we do not need them in ssr most of the time
         build: {
+          // force building ssr
           ssr: ssr1,
 
           // do not minify server side code
@@ -205,7 +207,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         return source
       }
 
-      return undefined
+      return
     },
 
     load(id) {
@@ -223,7 +225,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         return `export default ${JSON.stringify(templateSource)}`
       }
 
-      return undefined
+      return
     },
 
     configureServer(server) {
@@ -262,7 +264,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
             if (fs.existsSync(filename)) {
               try {
                 // read the index html file
-                let template = fs.readFileSync(filename, 'utf-8')
+                let template = fs.readFileSync(filename, 'utf8')
 
                 // transform the index html file
                 template = await server.transformIndexHtml(url, template, req.originalUrl)
@@ -291,12 +293,10 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
                     manifest: manifestSource
                   })
                 } else {
-                  if (ssr.renderVite) {
-                    renderedTemplate = await ssr.renderVite(req.originalUrl, template, {})
-                  } else {
-                    // the default renderer, it assumes an export named 'render'
-                    renderedTemplate = await ssr.render(req, res, template, {})
-                  }
+                  renderedTemplate = ssr.renderVite
+                    ? await ssr.renderVite(req.originalUrl, template, {})
+                    : // the default renderer, it assumes an export named 'render'
+                      await ssr.render(req, res, template, {})
                 }
 
                 // do not modify the template source
@@ -308,8 +308,8 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
                     headers: server.config.server.headers || {}
                   })
                 }
-              } catch (e) {
-                return next(e)
+              } catch (error) {
+                return next(error)
               }
             }
           }
@@ -438,7 +438,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
               const id = file.id
               const html = file.code
 
-              fs.writeFileSync(path.join(outDir, id), html, 'utf-8')
+              fs.writeFileSync(path.join(outDir, id), html, 'utf8')
             }
           }
         }

@@ -3,7 +3,7 @@ const { defineConfig } = require('eslint-define-config')
 
 module.exports = defineConfig({
   root: true,
-  extends: ['eslint:recommended', 'plugin:node/recommended', 'plugin:@typescript-eslint/recommended'],
+  extends: ['adjunct', 'eslint:recommended', 'plugin:node/recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     sourceType: 'module',
@@ -15,6 +15,7 @@ module.exports = defineConfig({
     'no-empty': ['warn', { allowEmptyCatch: true }],
     'no-process-exit': 'off',
     'no-useless-escape': 'off',
+    'no-secrets/no-secrets': 'off',
     'prefer-const': [
       'warn',
       {
@@ -60,6 +61,8 @@ module.exports = defineConfig({
     '@typescript-eslint/no-extra-semi': 'off', // conflicts with prettier
     '@typescript-eslint/no-inferrable-types': 'off',
     '@typescript-eslint/no-var-requires': 'off',
-    '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }]
+    '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+
+    'unicorn/prefer-node-protocol': 'off'
   }
 })

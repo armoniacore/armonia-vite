@@ -1,0 +1,12 @@
+dist
+dist-electron
+dist-ssr
+dist-ssg
+packages/playground
+node_modules
+public
+index.html
+.eslintrc.js
+postcss.config.js
+tailwind.config.js
+vite.config.ts

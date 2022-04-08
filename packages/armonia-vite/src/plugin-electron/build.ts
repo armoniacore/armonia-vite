@@ -2,6 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import type { InlineConfig } from 'vite'
 import { build as viteBuild, mergeConfig } from 'vite'
+
+import { trim } from '../common/trim'
 import type { ElectronOptions } from '../config'
 
 function locate(root: string, locations: string[]) {
@@ -203,27 +205,15 @@ export async function buildElectron(config: InlineConfig, electronConfig?: Elect
             try {
               // TODO: get rid of `fs`, as right now, this is not possible
               if (fs.existsSync(resolved.id)) {
-                pkg = JSON.parse(fs.readFileSync(resolved.id, 'utf-8'))
+                pkg = JSON.parse(fs.readFileSync(resolved.id, 'utf8'))
               }
-            } catch (err) {
+            } catch (error) {
               const message = 'Could not parse package.json file'
               this.warn({ message, id: './package.json' })
             }
           }
 
           pkg.main = mainName
-
-          function trim(string: string, charToRemove: string) {
-            while (string.charAt(0) === charToRemove) {
-              string = string.substring(1)
-            }
-
-            while (string.charAt(string.length - 1) === charToRemove) {
-              string = string.substring(0, string.length - 1)
-            }
-
-            return string
-          }
 
           // use this as a configuration object instead
           // const configDependencies: string[] | Record<string, string> = {}

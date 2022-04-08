@@ -1,5 +1,5 @@
-import type { Logger } from 'vite'
 import picocolors from 'picocolors'
+import type { Logger } from 'vite'
 
 export function ok(logger: Logger, message: string) {
   logger.info(`${picocolors.cyan('armonia')} ${picocolors.green(message)}`)

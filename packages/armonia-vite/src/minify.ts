@@ -44,17 +44,19 @@ import picocolors from 'picocolors'
  */
 export default function minify(): (value: string) => Promise<string> {
   return async function (html: string): Promise<string> {
-    let minify
+    let min
 
     try {
-      minify = (await import('html-minifier-terser')).minify
+      const { minify } = await import('html-minifier-terser')
+
+      min = minify
     } catch {
       console.warn(picocolors.yellow(`'html-minifier-terser' is required for minify the html, the html will not be minified.`))
 
       return html
     }
 
-    return minify(html, {
+    return min(html, {
       processScripts: ['application/ld+json'],
       collapseBooleanAttributes: true,
       collapseInlineTagWhitespace: true,

@@ -1,18 +1,19 @@
+import type { Options as ElectronPackagerConfig } from 'electron-packager'
 import fs from 'fs'
 import path from 'path'
 import type { RollupWatcher } from 'rollup'
 import type { ConfigEnv, Plugin, ResolvedConfig, UserConfig, ViteDevServer } from 'vite'
+import { mergeConfig } from 'vite'
+
+import { emitBundle } from '../common/emit_bundle'
+import { ok, warn } from '../common/log'
+import { resolveAddress } from '../common/resolve_address'
+import type { ElectronOptions } from '../config'
 import { buildElectron } from './build'
 import type { ElectronProcess } from './run'
 import { runElectron } from './run'
-import type { Options as ElectronPackagerConfig } from 'electron-packager'
-import type { PackageJson, ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions } from '../config'
-import { mergeConfig } from 'vite'
-import { warn, ok } from '../common/log'
-import { resolveAddress } from '../common/resolve_address'
-import { emitBundle } from '../common/emit_bundle'
 
-export { PackageJson, ElectronOptions, ElectronPackagerOptions, ElectronBuilderOptions }
+export { type ElectronBuilderOptions, type ElectronOptions, type ElectronPackagerOptions, type PackageJson } from '../config'
 
 type ElectronPackager = (opts: ElectronPackagerConfig) => Promise<string[]>
 
@@ -92,15 +93,15 @@ export default function electron(options?: ElectronOptions): Plugin {
     configResolved(config) {
       resolvedConfig = config
 
-      if (command === 'build') {
-        // electron resolve the path relative to the file system
+      if (
+        command === 'build' && // electron resolve the path relative to the file system
         // vite build uses / which will result in electron loading index.html and assets from the OS root
-        if (config.base !== './') {
-          warn(
-            config.logger,
-            `config.base must be './' when building electron, '${config.base}' provided instead, the output could not work as expected.`
-          )
-        }
+        config.base !== './'
+      ) {
+        warn(
+          config.logger,
+          `config.base must be './' when building electron, '${config.base}' provided instead, the output could not work as expected.`
+        )
       }
     },
 
@@ -111,14 +112,14 @@ export default function electron(options?: ElectronOptions): Plugin {
       }
 
       server.httpServer.on('listening', () => {
-        electronManager.run(server).catch((err) => {
-          server.config.logger.error(err)
+        electronManager.run(server).catch((error) => {
+          server.config.logger.error(error)
         })
       })
 
       server.httpServer.on('close', () => {
-        electronManager.close().catch((err) => {
-          server.config.logger.error(err)
+        electronManager.close().catch((error) => {
+          server.config.logger.error(error)
         })
       })
     },
@@ -164,7 +165,7 @@ export default function electron(options?: ElectronOptions): Plugin {
 
       const packageJsonFile = path.resolve(resolvedConfig.root, options?.packageJson || './package.json')
       if (fs.existsSync(packageJsonFile)) {
-        packageJson = JSON.parse(fs.readFileSync(packageJsonFile, 'utf-8'))
+        packageJson = JSON.parse(fs.readFileSync(packageJsonFile, 'utf8'))
       }
 
       const dir = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir)
