@@ -63,6 +63,8 @@ module.exports = defineConfig({
     '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
 
-    'unicorn/prefer-node-protocol': 'off'
+    'unicorn/prefer-node-protocol': 'off',
+    'sonarjs/cognitive-complexity': 'off',
+    'sonarjs/no-duplicate-string': 'off'
   }
 })

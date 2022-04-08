@@ -8,7 +8,7 @@ export default defineConfig({
     vue(),
     armonia({
       target: 'ssg',
-      ssr: {
+      ssg: {
         async staticRender({ render }) {
           const code = await render()
 

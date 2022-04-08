@@ -10,7 +10,7 @@ import { trimAny } from '../common/trim'
 
 export type Manifest = Record<string, string[]>
 
-export interface SSRRenderContext<TModule = any> {
+export interface SSRRenderContext<TModule = Record<string, any>> {
   /** The ssr module that has been resolved by vite. */
   ssr: TModule
 
@@ -27,15 +27,8 @@ export interface SSRRenderContext<TModule = any> {
   manifest: Manifest
 }
 
-export interface SSRFile {
-  id: string
-  code: string
-}
-
 export interface SSRPluginOptions {
   serverRoot?: string
-
-  ssg?: boolean
 
   /** Set the default ssr input, will have no effect when build.ssr is used. */
   ssr?: boolean | string
@@ -67,22 +60,81 @@ export interface SSRPluginOptions {
   /**
    * The ssr render function.
    */
-  render?: <TModule = any>(context: SSRRenderContext<TModule>) => Promise<string | void> | string | void
+  render?: (context: SSRRenderContext) => Promise<string | void> | string | void
+}
 
-  staticRender?: <TModule = any>(ssr: TModule, config: ResolvedConfig) => Promise<SSRFile[]> | Promise<void> | SSRFile[] | void
+export interface SSGFile {
+  id: string
+  code: string
+}
+
+export interface SSGOptions {
+  staticRender?: (ssr: Record<string, any>, config: ResolvedConfig) => Promise<SSGFile[]> | Promise<void> | SSGFile[] | void
+}
+
+function resolveSSRModule(config: UserConfig, options?: SSRPluginOptions): string | false | undefined {
+  // ssr is explicitly disabled
+  if (config.build?.ssr === false) {
+    return false
+  }
+
+  const ssr = config.build?.ssr || options?.ssr
+
+  // ssr is explicitly disabled
+  if (ssr === false) {
+    return false
+  }
+
+  // ssr has been set
+  if (typeof ssr === 'string') {
+    return ssr
+  }
+
+  const root = config.root ? path.resolve(config.root) : process.cwd()
+
+  if (fs.existsSync(path.resolve(root, 'src/entry-server.ts'))) {
+    return 'src/entry-server.ts'
+  }
+
+  if (fs.existsSync(path.resolve(root, 'src/entry-server.js'))) {
+    return 'src/entry-server.js'
+  }
+
+  return undefined
+}
+
+function resolveSSRInput(config: ResolvedConfig, options?: SSRPluginOptions): string {
+  // get the ssr module
+  let ssrInput: unknown = options?.ssr || config.build?.ssr
+
+  // as documented at https://vitejs.dev/config/#build-ssr
+  if (ssrInput === true) {
+    ssrInput = config.build?.rollupOptions?.input
+  }
+
+  if (typeof ssrInput === 'string') {
+    return ssrInput
+  }
+
+  if (fs.existsSync(path.resolve(config.root, 'src/entry-server.ts'))) {
+    return 'src/entry-server.ts'
+  }
+
+  // let vite warn the user when the ssr module is not found
+  return 'src/entry-server.js'
 }
 
 /**
  * The vite ssr plugin, it apply a middleware to the vite dev server that allow development under ssr without leaving vite.
  */
-export default function ssr(options?: SSRPluginOptions): Plugin {
+export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptions | undefined | false): Plugin {
   const SSR_MANIFEST_NAME = /* options?.manifestId || */ 'ssr:manifest'
   const SSR_TEMPLATE_NAME = /* options?.manifestId || */ 'ssr:template'
 
-  let generateSSRBuild = false
   let resolvedConfig: ResolvedConfig
   let manifestSource: Manifest = {}
   let templateSource = ''
+  let command: ConfigEnv['command']
   let mode: ConfigEnv['mode']
 
   let bundled: RollupOutput | undefined
@@ -114,54 +166,25 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
     enforce: 'post',
 
     config(config, env) {
+      command = env.command
       mode = env.mode
-
-      if (options?.config === false) {
-        return
-      }
 
       if (env.mode !== 'production' || env.command !== 'build') {
         // run only on production build SSR
         return options?.config
       }
 
-      // ssr is explicitly disabled
-      if (config.build?.ssr === false) {
-        return
-      }
-
-      let ssr1 = config.build?.ssr || options?.ssr
+      const ssr = resolveSSRModule(config, options)
 
       // ssr is explicitly disabled
-      if (ssr1 === false) {
+      if (ssr === false) {
         return
       }
-
-      if (!ssr1) {
-        const root = config.root || process.cwd()
-
-        if (fs.existsSync(path.resolve(root, 'src/entry-server.ts'))) {
-          ssr1 = 'src/entry-server.ts'
-        }
-
-        if (fs.existsSync(path.resolve(root, 'src/entry-server.js'))) {
-          ssr1 = 'src/entry-server.js'
-        }
-      }
-
-      if (!ssr1) {
-        return
-      }
-
-      generateSSRBuild = true
 
       let ssrConfig: UserConfig = {
         // this config will reset some common vite spa config
         // we do not need them in ssr most of the time
         build: {
-          // force building ssr
-          ssr: ssr1,
-
           // do not minify server side code
           minify: false,
 
@@ -181,13 +204,22 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
       // the client will do this
       ssrConfig.publicDir = false
 
+      // force ssr build
+      if (typeof ssr === 'string') {
+        if (ssrConfig.build) {
+          ssrConfig.build.ssr = ssr
+        } else {
+          ssrConfig.build = { ssr }
+        }
+      }
+
       return ssrConfig
     },
 
     configResolved(config) {
       resolvedConfig = config
 
-      if (generateSSRBuild) {
+      if (command === 'build' && typeof resolvedConfig.build.ssr === 'string') {
         ok(config.logger, `building SSR bundle for ${mode}...`)
       }
     },
@@ -203,14 +235,10 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
     },
 
     resolveId(source) {
-      if (source === SSR_MANIFEST_NAME || source === SSR_TEMPLATE_NAME) {
-        return source
-      }
-
-      return
+      return source === SSR_MANIFEST_NAME || source === SSR_TEMPLATE_NAME ? source : undefined
     },
 
-    load(id) {
+    load(id): string | undefined {
       // load the manifest
       if (id === SSR_MANIFEST_NAME) {
         // await applyManifestTransformation()
@@ -225,25 +253,11 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         return `export default ${JSON.stringify(templateSource)}`
       }
 
-      return
+      return undefined
     },
 
     configureServer(server) {
-      // get the ssr module
-      let ssrInput: unknown = options?.ssr || server.config.build?.ssr
-
-      // as documented at https://vitejs.dev/config/#build-ssr
-      if (ssrInput === true) {
-        ssrInput = server.config.build?.rollupOptions?.input
-      }
-
-      let ssrModule = 'src/entry-server.js'
-
-      if (typeof ssrInput === 'string') {
-        ssrModule = ssrInput
-      } else if (fs.existsSync(path.resolve(server.config.root, 'src/entry-server.ts'))) {
-        ssrModule = 'src/entry-server.ts'
-      }
+      const ssrModule = resolveSSRInput(server.config, options)
 
       // let vite warn the user when the ssr module is not found
 
@@ -320,7 +334,7 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
     },
 
     async buildStart() {
-      if (!generateSSRBuild) {
+      if (typeof resolvedConfig.build.ssr !== 'string') {
         return
       }
 
@@ -348,7 +362,6 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         if (chunk.type === 'asset' && chunk.fileName === 'index.html') {
           templateSource = chunk.source as string
           await applyTemplateTransformation()
-          continue
         }
       }
     },
@@ -398,11 +411,11 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
     },
 
     async closeBundle() {
-      if (!generateSSRBuild) {
+      if (command !== 'build' || typeof resolvedConfig.build.ssr !== 'string') {
         return
       }
 
-      if (options?.ssg !== true) {
+      if (ssgOptions === false) {
         return
       }
 
@@ -430,9 +443,10 @@ export default function ssr(options?: SSRPluginOptions): Plugin {
         const ssrEntryPath = path.resolve(resolvedConfig.root, ssrInput)
 
         if (fs.existsSync(ssrEntryPath)) {
+          // eslint-disable-next-line unicorn/prefer-module
           const ssr = require(ssrEntryPath)
 
-          const files = await options?.staticRender?.call(undefined, ssr, resolvedConfig)
+          const files = await ssgOptions?.staticRender?.call(undefined, ssr, resolvedConfig)
           if (files) {
             for (const file of files) {
               const id = file.id

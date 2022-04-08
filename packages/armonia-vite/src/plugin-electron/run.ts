@@ -1,7 +1,6 @@
 import type { ChildProcessWithoutNullStreams } from 'child_process'
 import proc from 'child_process'
 import colors from 'picocolors'
-import { ok } from '../common/log'
 
 export interface ElectronProcess {
   child: ChildProcessWithoutNullStreams
@@ -32,7 +31,6 @@ export async function runElectron(root: string, argv?: string[]): Promise<Electr
         process.exit(1)
       }
     } else {
-      ok(console, 'exited')
       console.info(`${colors.cyan('armonia electron')} ${colors.green('exited')}`)
 
       if (exitProcess) {

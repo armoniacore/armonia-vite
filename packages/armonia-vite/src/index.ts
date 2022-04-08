@@ -2,13 +2,20 @@ import type { Plugin } from 'vite'
 
 import type { ElectronOptions } from './config'
 import electron from './plugin-electron'
-import type { SSRPluginOptions } from './plugin-ssr'
+import type { SSGOptions, SSRPluginOptions } from './plugin-ssr'
 import ssr from './plugin-ssr'
 
 export { type ElectronBuilderOptions, type ElectronOptions, type ElectronPackagerOptions, type PackageJson } from './config'
 export { default as minify } from './minify'
 export { default as electron } from './plugin-electron'
-export { type Manifest, type SSRFile, type SSRPluginOptions, type SSRRenderContext, default as ssr } from './plugin-ssr'
+export {
+  type Manifest,
+  type SSGOptions,
+  type SSGFile as SSRFile,
+  type SSRPluginOptions,
+  type SSRRenderContext,
+  default as ssr
+} from './plugin-ssr'
 
 export type Target =
   | 'spa'
@@ -27,6 +34,7 @@ export interface Options {
   target?: Target
   electron?: ElectronOptions
   ssr?: SSRPluginOptions
+  ssg?: SSGOptions
 }
 
 interface TargetTriple {
@@ -55,11 +63,12 @@ export function armonia(options?: Options): Plugin {
     return electron(options.electron)
   }
 
-  if (mode === 'ssr' || mode === 'ssg') {
-    options.ssr = options.ssr || {}
-    options.ssr.ssg = mode === 'ssg'
+  if (mode === 'ssr') {
+    return ssr(options.ssr, false)
+  }
 
-    return ssr(options.ssr)
+  if (mode === 'ssg') {
+    return ssr(options.ssr, options.ssg)
   }
 
   return {
