@@ -6,8 +6,9 @@ Almost bare metal, Armonia allows you to develop and build application across mu
 
 Armonia supports as right now:
 
-- [SSR](ssr.md)
 - [Electron](electron.md)
+- [SSR](ssr.md)
+- [SSG](ssg.md)
 
 ```bash
 $ pnpm i @armonia/vite -D
