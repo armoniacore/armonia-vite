@@ -2,6 +2,7 @@ dist
 dist-electron
 dist-ssr
 dist-ssg
+docs
 packages/playground
 node_modules
 public
