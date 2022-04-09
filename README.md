@@ -74,7 +74,7 @@ Install `electron` and `electron-builder`:
 $ pnpm i electron electron-builder -D
 ```
 
-Create the file `src-electron/index.ts`, it will be automatically discovered by the plugin:
+Create the file `src-electron/index.ts`, it will be automatically discovered by Armonia:
 
 ```ts
 // src-electron/index.ts
@@ -150,7 +150,7 @@ $ pnpm build:electron
 <details open>
 <br>
 
-Create the file `src/entry-server.ts`, it will be automatically discovered by the plugin. This will be your main entry point for the server-side code and it will run on `node`.
+Create the file `src/entry-server.ts`, it will be automatically discovered by Armonia. This will be your main entry point for the server-side code and it will run on `node`.
 
 ```ts
 // src/entry-server.ts
@@ -264,6 +264,7 @@ See the [open issues](https://github.com/armoniacore/armonia-vite/issues) for a 
 - [ ] Implement a specialized CLI
 - [ ] Actually do a proper CHANGELOG
 - [ ] Workflow, everybody likes workflows
+- [ ] Tests, tests and more tests
 
 ## Contributing
 

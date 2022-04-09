@@ -1,29 +1,14 @@
-# Armonia
+---
+home: true
+actionText: Get Started
+actionLink: /docs/
 
-Armonia is a vite plugin for quick application development.
-
-Almost bare metal, Armonia allows you to develop and build application across multiple target without leaving the comfort of vite.
-
-Armonia supports as right now:
-
-- [Electron](electron.md)
-- [SSR](ssr.md)
-- [SSG](ssg.md)
-
-```bash
-$ pnpm i @armonia/vite -D
-```
-
-```ts
-// vite.config.ts
-import { defineConfig } from 'vite'
-import { armonia } from '@armonia/vite'
-
-export default defineConfig({
-  plugins: [armonia()]
-})
-```
-
-> Explore the [example projects](https://github.com/armoniacore/armonia-vite/tree/main/packages/playground)
-
-Or explore the [not so starter template](https://github.com/armoniacore/starter-template-vue-ts)
+features:
+  - title: ⚛️ Electron
+    details: Electron application in vite with no pain (hopefully), restart automatically and yes, I know it's fast indeed.
+  - title: 📥 Server Side Rendering
+    details: It just works out-of-the-box, full control and power to you with almost-zero abstractions.
+  - title: 📔 Static Site Generator
+    details: It almost works.
+footer: MIT Licensed | Copyright © 2022 Luca
+---

@@ -49,7 +49,7 @@ export async function render(
 }
 ```
 
-There is also an alternative version used by the plugin in order to render SSG targets `renderVite`, the function should accept just the url and return a string, it can also accept the manifest and template just like the above.
+There is also an alternative version used by Armonia in order to render SSG targets `renderVite`, the function should accept just the url and return a string, it can also accept the manifest and template just like the above.
 
 And example would be:
 
@@ -89,14 +89,14 @@ export default defineConfig({
       async render({ req, res, template, manifest, ssr }) { // ssr is what you have exported
         const app = await ssr.render(req, template, manifest)
 
-        // no return, the plugin will assume you have handle the rendering
+        // no return, Armonia will assume you have handle the rendering
         pipeToNodeWritable(app, {}, res)
       },
       // or
       render({ req, res, template, manifest, ssr }) {
         const html = ssr.customRenderFunction(req, res, template, manifest)
 
-        // the plugin will serve this exact string as text/html
+        // Armonia will serve this exact string as text/html
         return html
       }
     }
@@ -199,7 +199,7 @@ Note that the ssr manifest does not exists when developing, so be aware that whe
 
 Importing the manifest can be especially beneficial when you want to export a single file, by embedding the template and manifest in the source code, you do not need to rely on a file to be present in the output directory, you also do not need a special code to load such files, very handy indeed.
 
-It is advisable that you do not perform a minification in the render function, the plugin allow you to minify the html before the render occurs.
+It is advisable that you do not perform a minification in the render function, Armonia allow you to minify the html before the render occurs.
 
 ### Typings
 
@@ -311,7 +311,7 @@ createServer().then(({ app }) =>
 
 ## Minified in production
 
-The plugin disable minification of the ssr output as the code is running on your server, the minification makes much harder to debug the code, however, if you want to minify the code regardless, you are free to overwrite this settings.
+Armonia disable minification of the ssr output as the code is running on your server, the minification makes much harder to debug the code, however, if you want to minify the code regardless, you are free to overwrite this settings.
 
 ```js
 armonia({
@@ -339,7 +339,7 @@ armonia({
 })
 ```
 
-The plugin will continue to work in dev.
+Armonia will continue to work in dev.
 
 ## Caveats
 
@@ -367,7 +367,7 @@ armonia({
 
 ### Reset options
 
-The plugin will reset the `entryFileNames` when building in production but only for the server side code, your client side code is untouched.
+Armonia will reset the `entryFileNames` when building in production but only for the server side code, your client side code is untouched.
 
 `rollupOptions.output.entryFileNames = '[name].js'`
 
