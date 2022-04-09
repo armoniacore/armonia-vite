@@ -72,15 +72,15 @@ export function armonia(options?: Options): Plugin {
   }
 
   return {
-    name: 'vite-plugin-spa',
+    name: 'vite-plugin-armonia-spa',
 
     config() {
       return {
         define: {
           // capacitor
-          'import.meta.env.CAPACITOR': true,
+          'import.meta.env.CAPACITOR': false,
           // electron
-          'import.meta.env.ELECTRON': true,
+          'import.meta.env.ELECTRON': false,
           'import.meta.env.ELECTRON_APP_URL': 'undefined',
           'import.meta.env.ELECTRON_PRELOAD_URL': 'undefined'
         }

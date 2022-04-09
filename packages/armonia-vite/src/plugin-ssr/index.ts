@@ -54,7 +54,6 @@ export interface SSRPluginOptions {
 
   /**
    * Apply a transformation to the index.html file, note this will run after any vite just before render is called.
-   * It will not run when render is called.
    */
   transformTemplate?: (html: string) => Promise<string | void> | string | void
 
