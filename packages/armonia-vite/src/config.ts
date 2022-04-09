@@ -27,6 +27,8 @@ export interface ElectronOptions {
    *  'src-electron/index'
    *  'src-electron/electron'
    *  'src-electron/electron-main'
+   *  'src/electron'
+   *  'src/electron-main'
    * ```
    */
   main?: string
@@ -38,9 +40,11 @@ export interface ElectronOptions {
    *
    * @default Resolved automatically from:
    * ```js
-   * 'electron/preload'
-   * 'src-electron/preload'
-   * 'src-electron/electron-preload'
+   *  'electron/preload'
+   *  'src-electron/preload'
+   *  'src-electron/electron-preload'
+   *  'src/preload'
+   *  'src/electron-preload'
    * ```
    */
   preload?: string
@@ -80,7 +84,7 @@ export interface ElectronOptions {
   /**
    * Fine tune the generated `package.json`
    */
-  transformPackageJson?: (pkg: PackageJson) => void | Promise<void>
+  transformPackageJson?: (pkg: Record<string, any>) => void | Promise<void>
 
   /**
    * Overwrite the vite config.

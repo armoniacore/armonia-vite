@@ -33,7 +33,12 @@ function findElectronMain(root: string) {
       'src-electron/electron.ts',
       'src-electron/electron.js',
       'src-electron/electron-main.ts',
-      'src-electron/electron-main.js'
+      'src-electron/electron-main.js',
+      //
+      'src/electron.ts',
+      'src/electron.js',
+      'src/electron-main.ts',
+      'src/electron-main.js'
     ]) || 'src/electron.js'
   )
 }
@@ -46,7 +51,12 @@ function findElectronPreload(root: string) {
     'src-electron/preload.ts',
     'src-electron/preload.js',
     'src-electron/electron-preload.ts',
-    'src-electron/electron-preload.js'
+    'src-electron/electron-preload.js',
+    //
+    'src/preload.ts',
+    'src/preload.js',
+    'src/electron-preload.ts',
+    'src/electron-preload.js'
   ])
 }
 
