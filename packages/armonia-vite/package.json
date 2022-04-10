@@ -29,7 +29,7 @@
   "devDependencies": {
     "@capacitor/cli": "^3.4.3",
     "@capacitor/core": "^3.4.3",
-    "@microsoft/api-extractor": "^7.20.1",
+    "@microsoft/api-extractor": "^7.21.2",
     "@rollup/plugin-commonjs": "^21.0.3",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.1.3",
