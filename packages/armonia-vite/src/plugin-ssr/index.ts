@@ -9,8 +9,6 @@ import { build, mergeConfig, send } from 'vite'
 import { ok } from '../common/log'
 import { trimAny } from '../common/trim'
 
-export type Manifest = Record<string, string[]>
-
 export interface SSRRenderContext<TModule = Record<string, any>> {
   /** The ssr module that has been resolved by vite. */
   ssr: TModule
@@ -25,7 +23,7 @@ export interface SSRRenderContext<TModule = Record<string, any>> {
   template: string
 
   /** The ssr manifest. */
-  manifest: Manifest
+  manifest: Record<string, string[]>
 }
 
 export interface SSRPluginOptions {
@@ -49,8 +47,6 @@ export interface SSRPluginOptions {
 
   /** true to enable the output of ssr-manifest.json and index.html file */
   writeManifest?: boolean
-
-  transformManifest?: (manifest: Manifest) => Promise<Manifest | void> | Manifest | void
 
   /**
    * Apply a transformation to the index.html file, note this will run after any vite just before render is called.
@@ -89,8 +85,6 @@ export interface SSGOptions {
 
   /** true to enable the output of ssr-manifest.json and index.html file */
   writeManifest?: boolean
-
-  transformManifest?: (manifest: Manifest) => Promise<Manifest | void> | Manifest | void
 
   /**
    * Apply a transformation to the index.html file, note this will run after any vite just before render is called.
@@ -170,9 +164,6 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
     if (typeof ssgOptions.writeManifest !== 'undefined') {
       options.writeManifest = ssgOptions.writeManifest
     }
-    if (typeof ssgOptions.transformManifest !== 'undefined') {
-      options.transformManifest = ssgOptions.transformManifest
-    }
     if (typeof ssgOptions.transformTemplate !== 'undefined') {
       options.transformTemplate = ssgOptions.transformTemplate
     }
@@ -181,24 +172,11 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
   }
 
   let resolvedConfig: ResolvedConfig
-  let manifestSource: Manifest = {}
+  let manifestSource: Record<string, string[]> = {}
   let templateSource = ''
   let command: ConfigEnv['command']
   let mode: ConfigEnv['mode']
   let bundled: RollupOutput | undefined
-
-  async function applyManifestTransformation() {
-    let manifest: unknown = await options?.transformManifest?.call(undefined, manifestSource)
-
-    if (typeof manifest === 'string') {
-      manifest = JSON.parse(manifest)
-    }
-
-    if (manifest && typeof manifest === 'object') {
-      // save the manifest
-      manifestSource = manifest as Manifest
-    }
-  }
 
   async function applyTemplateTransformation() {
     const template: unknown = await options?.transformTemplate?.call(undefined, templateSource)
@@ -400,14 +378,16 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
       const ssrManifestFileName =
         typeof resolvedConfig.build.ssrManifest === 'string' ? resolvedConfig.build.ssrManifest : 'ssr-manifest.json'
 
+      const templateFileName =
+        typeof resolvedConfig.build.rollupOptions.input === 'string' ? resolvedConfig.build.rollupOptions.input : 'index.html'
+
       for (const chunk of bundled.output) {
         if (chunk.type === 'asset' && chunk.fileName === ssrManifestFileName) {
           manifestSource = JSON.parse(chunk.source as string)
-          await applyManifestTransformation()
           continue
         }
 
-        if (chunk.type === 'asset' && chunk.fileName === 'index.html') {
+        if (chunk.type === 'asset' && chunk.fileName === templateFileName) {
           templateSource = chunk.source as string
           await applyTemplateTransformation()
         }
@@ -443,7 +423,7 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
         if (chunk.type === 'asset') {
           this.emitFile({
             type: 'asset',
-            fileName: `${serverRoot}/${chunk.fileName}`,
+            fileName: path.join(serverRoot, chunk.fileName),
             source: chunk.source
           })
         }
@@ -451,7 +431,7 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
         if (chunk.type === 'chunk') {
           this.emitFile({
             type: 'asset',
-            fileName: `${serverRoot}/${chunk.fileName}`,
+            fileName: path.join(serverRoot, chunk.fileName),
             source: chunk.code
           })
         }
@@ -478,7 +458,7 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
 
       if (files) {
         for (const file of files) {
-          const fileName = `${serverRoot}/${trimAny(file.id, ['.', '/', '\\'])}`
+          const fileName = path.join(serverRoot, trimAny(file.id, ['.', '/', '\\']))
           const source = file.code
 
           this.emitFile({
