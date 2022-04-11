@@ -1,21 +1,13 @@
 import type { Plugin } from 'vite'
 
-import type { ElectronOptions } from './config'
+import type { ElectronOptions } from './plugin-electron'
 import electron from './plugin-electron'
 import type { SSGOptions, SSRPluginOptions } from './plugin-ssr'
 import ssr from './plugin-ssr'
 
-export { type ElectronBuilderOptions, type ElectronOptions, type ElectronPackagerOptions, type PackageJson } from './config'
 export { default as minify } from './minify'
-export { default as electron } from './plugin-electron'
-export {
-  type Manifest,
-  type SSGOptions,
-  type SSGFile as SSRFile,
-  type SSRPluginOptions,
-  type SSRRenderContext,
-  default as ssr
-} from './plugin-ssr'
+export { type ElectronBuilderOptions, type ElectronOptions, type ElectronPackagerOptions, default as electron } from './plugin-electron'
+export { type SSGFile, type SSGOptions, type SSRPluginOptions, type SSRRenderContext, default as ssr } from './plugin-ssr'
 
 export type Target =
   | 'spa'
@@ -40,6 +32,8 @@ export interface Options {
 interface TargetTriple {
   mode: string
   sys: string | null
+  // target: string
+  // arch-architecture: string
 }
 
 function parseTarget(value?: string): TargetTriple {

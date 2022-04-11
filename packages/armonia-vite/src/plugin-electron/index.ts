@@ -1,3 +1,4 @@
+import type { Configuration as ElectronBuilderConfig } from 'electron-builder'
 import type { Options as ElectronPackagerConfig } from 'electron-packager'
 import fs from 'fs'
 import path from 'path'
@@ -8,12 +9,97 @@ import { mergeConfig } from 'vite'
 import { emitBundle } from '../common/emit_bundle'
 import { ok, warn } from '../common/log'
 import { resolveAddress } from '../common/resolve_address'
-import type { ElectronOptions } from '../config'
 import { buildElectron } from './build'
 import type { ElectronProcess } from './run'
 import { runElectron } from './run'
 
-export { type ElectronBuilderOptions, type ElectronOptions, type ElectronPackagerOptions, type PackageJson } from '../config'
+export type ElectronBuilderOptions = ElectronBuilderConfig
+export type ElectronPackagerOptions = Omit<ElectronPackagerConfig, 'dir' | 'out'>
+
+export interface ElectronOptions {
+  /**
+   * Electron argv.
+   */
+  argv?: string[]
+
+  /**
+   * Defines the electron main file.
+   *
+   * @note Omit the file extension to resolve `.js` and `.ts` automatically
+   *
+   * @default Resolved automatically from:
+   * ```js
+   *  'electron/main'
+   *  'electron/index'
+   *  'electron/electron'
+   *  'src-electron/main'
+   *  'src-electron/index'
+   *  'src-electron/electron'
+   *  'src-electron/electron-main'
+   *  'src/electron'
+   *  'src/electron-main'
+   * ```
+   */
+  main?: string
+
+  /**
+   * Defines the electron preload file.
+   *
+   * @note Omit the file extension to resolve `.js` and `.ts` automatically
+   *
+   * @default Resolved automatically from:
+   * ```js
+   *  'electron/preload'
+   *  'src-electron/preload'
+   *  'src-electron/electron-preload'
+   *  'src/preload'
+   *  'src/electron-preload'
+   * ```
+   */
+  preload?: string
+
+  /**
+   * Defines the electron bundler, either `electron-packager` or `electron-builder`.
+   *
+   * @note Resolved automatically from the package dependencies
+   */
+  bundler?: 'builder' | 'packager' | false
+
+  /**
+   * Defines the configuration for `electron-builder`.
+   */
+  builder?: ElectronBuilderOptions
+
+  /**
+   * Defines the configuration for `electron-packager`.
+   */
+  packager?: ElectronPackagerOptions
+
+  /**
+   * Defines the electron dependencies.
+   */
+  dependencies?: string[] | Record<string, string>
+
+  /**
+   * Dependencies to always exclude.
+   */
+  excludeDependencies?: string[]
+
+  /**
+   * The package.json file location relative the the vite project root.
+   */
+  packageJson?: string
+
+  /**
+   * Fine tune the generated `package.json`
+   */
+  transformPackageJson?: (pkg: Record<string, any>) => void | Promise<void>
+
+  /**
+   * Overwrite the vite config.
+   */
+  config?: UserConfig
+}
 
 type ElectronPackager = (opts: ElectronPackagerConfig) => Promise<string[]>
 
@@ -65,6 +151,10 @@ function createRunner(options?: ElectronOptions) {
   }
 }
 
+// TODO: electron builder
+// ElectronPlatformName = "darwin" | "linux" | "win32" | "mas";
+// ArchType = "x64" | "ia32" | "armv7l" | "arm64" | "universal";
+
 export default function electron(options?: ElectronOptions): Plugin {
   const electronManager = createRunner(options)
   let resolvedConfig: ResolvedConfig
@@ -93,11 +183,9 @@ export default function electron(options?: ElectronOptions): Plugin {
     configResolved(config) {
       resolvedConfig = config
 
-      if (
-        command === 'build' && // electron resolve the path relative to the file system
-        // vite build uses / which will result in electron loading index.html and assets from the OS root
-        config.base !== './'
-      ) {
+      // electron resolve the path relative to the binary location
+      // vite build uses '/' which will result in electron loading index.html and assets from the OS root
+      if (command === 'build' && config.base !== './') {
         warn(
           config.logger,
           `config.base must be './' when building electron, '${config.base}' provided instead, the output could not work as expected.`
@@ -150,6 +238,7 @@ export default function electron(options?: ElectronOptions): Plugin {
       emitBundle(this, bundle)
     },
 
+    // we need closeBundle and not writeBundle as bundling requires all the files to be written on disk to properly work
     async closeBundle() {
       await electronManager.close()
 
@@ -161,15 +250,16 @@ export default function electron(options?: ElectronOptions): Plugin {
         return
       }
 
+      const dir = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir)
+      const out = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, 'dist')
+
       let packageJson: Record<string, any> = {}
 
       const packageJsonFile = path.resolve(resolvedConfig.root, options?.packageJson || './package.json')
+
       if (fs.existsSync(packageJsonFile)) {
         packageJson = JSON.parse(fs.readFileSync(packageJsonFile, 'utf8'))
       }
-
-      const dir = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir)
-      const out = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, 'dist')
 
       let bundler = options?.bundler
 
@@ -189,6 +279,12 @@ export default function electron(options?: ElectronOptions): Plugin {
 
         const builderOptions = options?.builder || {}
 
+        // TODO: overwrite this
+        // builderOptions.win = []
+        // builderOptions.mac = []
+        // builderOptions.linux = []
+        // builderOptions.publish = '' // this is advanced
+
         await build({
           projectDir: dir,
           config: builderOptions
@@ -200,6 +296,10 @@ export default function electron(options?: ElectronOptions): Plugin {
         const electronPackager = (await import('electron-packager')) as unknown as ElectronPackager
 
         const packagerOptions = options?.packager || {}
+
+        // TODO: overwrite this, can be a string or an array
+        // packagerOptions.platform = 'linux'
+        // packagerOptions.arch = 'x64'
 
         await electronPackager({
           ...packagerOptions,

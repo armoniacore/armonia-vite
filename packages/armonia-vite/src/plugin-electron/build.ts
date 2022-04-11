@@ -4,7 +4,6 @@ import type { InlineConfig } from 'vite'
 import { build as viteBuild, mergeConfig } from 'vite'
 
 import { trim } from '../common/trim'
-import type { ElectronOptions } from '../config'
 
 function locate(root: string, locations: string[]) {
   for (const location of locations) {
@@ -69,13 +68,17 @@ function resolveUrl(config: InlineConfig): string {
   return url
 }
 
-export interface ElectronBuildConfig {
+interface ElectronBuildConfig {
   url?: string
   main?: string
   preload?: string
 }
 
-export async function buildElectron(config: InlineConfig, electronConfig?: ElectronBuildConfig, options?: ElectronOptions) {
+interface ExtraOptions {
+  transformPackageJson?: (pkg: Record<string, any>) => void | Promise<void>
+}
+
+export async function buildElectron(config: InlineConfig, electronConfig?: ElectronBuildConfig, options?: ExtraOptions) {
   const resolvedRoot = config.root ? path.resolve(config.root) : process.cwd()
 
   const mainEntry = electronConfig?.main || findElectronMain(resolvedRoot)
@@ -86,6 +89,20 @@ export async function buildElectron(config: InlineConfig, electronConfig?: Elect
 
   const appUrl = electronConfig?.url || resolveUrl(config)
   const preloadUrl = preloadEntry ? `./${path.parse(preloadEntry).name}.js` : false
+
+  const external: string[] = []
+
+  if (fs.existsSync(path.resolve(resolvedRoot, 'package.json'))) {
+    const packageJson = JSON.parse(fs.readFileSync(path.resolve(resolvedRoot, 'package.json'), 'utf8'))
+
+    if (packageJson.dependencies) {
+      external.push(...Object.keys(packageJson.dependencies))
+    }
+
+    // if (packageJson.devDependencies) {
+    //   external.push(...Object.keys(packageJson.devDependencies))
+    // }
+  }
 
   const buildConfig = mergeConfig(config, {
     configFile: false, // TODO: we do not allow the user to reference a config file
@@ -102,29 +119,36 @@ export async function buildElectron(config: InlineConfig, electronConfig?: Elect
         input: preloadEntry ? [mainEntry, preloadEntry] : [mainEntry],
 
         output: {
-          interop: false, // TODO: this could break for older electron versions
           format: 'cjs',
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
           assetFileNames: '[name].[ext]'
         },
 
+        // TODO: this looks more like an hack than an actual smart way to go about it
         external: [
+          ...external,
+
           'electron',
+
           // node core modules
           'assert',
+          'async_hooks',
           'buffer',
           'child_process',
-          'console',
           'cluster',
+          'console',
           'crypto',
           'dgram',
           'dns',
           'events',
           'fs',
+          'fs/promises',
           'http',
           'http2',
           'https',
+          'inspector',
+          'module',
           'net',
           'os',
           'path',
@@ -145,20 +169,25 @@ export async function buildElectron(config: InlineConfig, electronConfig?: Elect
           'wasi',
           'worker',
           'zlib',
+
           // for node 16
           'node:assert',
+          'node:async_hooks',
           'node:buffer',
           'node:child_process',
-          'node:console',
           'node:cluster',
+          'node:console',
           'node:crypto',
           'node:dgram',
           'node:dns',
           'node:events',
           'node:fs',
+          'node:fs/promises',
           'node:http',
           'node:http2',
           'node:https',
+          'node:inspector',
+          'node:module',
           'node:net',
           'node:os',
           'node:path',

@@ -53,8 +53,10 @@ export async function runElectron(root: string, argv?: string[]): Promise<Electr
 
   return {
     child,
+
     async close() {
       exitProcess = false
+
       return new Promise((resolve) => {
         if (child.killed) {
           resolve()

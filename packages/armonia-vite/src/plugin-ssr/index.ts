@@ -6,7 +6,7 @@ import type { RollupOutput } from 'rollup'
 import type { ConfigEnv, Plugin, ResolvedConfig, SSROptions, UserConfig } from 'vite'
 import { build, mergeConfig, send } from 'vite'
 
-import { ok } from '../common/log'
+import { ok, warn } from '../common/log'
 import { trimAny } from '../common/trim'
 
 export interface SSRRenderContext<TModule = Record<string, any>> {
@@ -64,38 +64,11 @@ export interface SSGFile {
   code: string
 }
 
-export interface SSGOptions {
-  serverRoot?: string
-
-  /** Set the default ssr input, will have no effect when build.ssr is used. */
-  ssr?: boolean | string
-
-  // /** Defaults to `ssr:manifest` */
-  // manifestId?: string
-
-  // /** Defaults to `ssr:template` */
-  // templateId?: string
-
-  /**
-   * Overwrite the vite config.
-   */
-  config?: UserConfig & {
-    ssr?: SSROptions
-  }
-
-  /** true to enable the output of ssr-manifest.json and index.html file */
-  writeManifest?: boolean
-
-  /**
-   * Apply a transformation to the index.html file, note this will run after any vite just before render is called.
-   * It will not run when render is called.
-   */
-  transformTemplate?: (html: string) => Promise<string | void> | string | void
-
+export interface SSGOptions extends Omit<SSRPluginOptions, 'render'> {
   staticRender?: (ssr: Record<string, any>, config: ResolvedConfig) => Promise<SSGFile[]> | Promise<void> | SSGFile[] | void
 }
 
-function resolveSSRModule(config: UserConfig, options?: SSRPluginOptions): string | false | undefined {
+function discoverSSREntry(config: UserConfig, options?: SSRPluginOptions): string | false | undefined {
   // ssr is explicitly disabled
   if (config.build?.ssr === false) {
     return false
@@ -145,6 +118,35 @@ function resolveSSRInput(config: ResolvedConfig, options?: SSRPluginOptions): st
 
   // let vite warn the user when the ssr module is not found
   return 'src/entry-server.js'
+}
+
+async function render(
+  options: SSRPluginOptions | undefined,
+  { ssr, req, res, template, manifest }: SSRRenderContext
+): Promise<string | undefined> {
+  let renderedTemplate
+
+  // render the html page
+  if (options?.render) {
+    renderedTemplate = await options.render({
+      ssr,
+      req,
+      res,
+      template,
+      manifest
+    })
+  } else {
+    if (ssr.renderVite) {
+      const url = (req as any).originalUrl || req.url || '/'
+
+      renderedTemplate = await ssr.renderVite(url, template, {})
+    } else {
+      // the default renderer, it assumes an export named 'render'
+      renderedTemplate = await ssr.render(req, res, template, {})
+    }
+  }
+
+  return typeof renderedTemplate === 'string' ? renderedTemplate : undefined
 }
 
 /**
@@ -200,7 +202,7 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
         return options?.config
       }
 
-      const ssr = resolveSSRModule(config, options)
+      const ssr = discoverSSREntry(config, options)
 
       // ssr is explicitly disabled
       if (ssr === false) {
@@ -321,30 +323,18 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
                 // load the ssr module
                 const ssr = await server.ssrLoadModule(ssrModule)
 
-                let renderedTemplate
-
-                // render the html page
-                if (options?.render) {
-                  renderedTemplate = await options.render({
-                    ssr,
-                    req,
-                    res,
-                    template,
-                    manifest: manifestSource
-                  })
-                } else {
-                  renderedTemplate = ssr.renderVite
-                    ? await ssr.renderVite(req.originalUrl, template, {})
-                    : // the default renderer, it assumes an export named 'render'
-                      await ssr.render(req, res, template, {})
-                }
-
-                // do not modify the template source
-                template = typeof renderedTemplate === 'string' ? renderedTemplate : template
+                // render the template trough the ssr entry
+                const renderedTemplate = render(options, {
+                  ssr,
+                  req,
+                  res,
+                  template,
+                  manifest: manifestSource
+                })
 
                 // send back the rendered page
                 if (typeof renderedTemplate === 'string') {
-                  return send(req, res, template, 'html', {
+                  return send(req, res, renderedTemplate, 'html', {
                     headers: server.config.server.headers || {}
                   })
                 }
@@ -447,16 +437,28 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
         return
       }
 
-      const serverRoot = trimAny(options?.serverRoot || 'www', ['.', '/', '\\']) || 'www'
+      // get the ssr entry name from the rollup bundle, it is always the first file in the bundle
+      const ssrEntryName = Object.keys(bundle)[0]
 
+      if (!ssrEntryName) {
+        warn(resolvedConfig.logger, 'something went wrong when writing the SSR bundle')
+        return
+      }
+
+      // resolve the rootDir
       const rootDir = path.resolve(resolvedConfig.root, resolvedConfig.build.outDir)
 
+      // get the ssr entry file name
+      const ssrEntry = path.join(rootDir, ssrEntryName)
+
       // eslint-disable-next-line unicorn/prefer-module
-      const ssr = require(path.resolve(resolvedConfig.root, resolvedConfig.build.outDir, Object.keys(bundle)[0]!))
+      const ssr = require(ssrEntry)
 
       const files = await ssgOptions?.staticRender?.call(undefined, ssr, resolvedConfig)
 
       if (files) {
+        const serverRoot = trimAny(options?.serverRoot || 'www', ['.', '/', '\\']) || 'www'
+
         for (const file of files) {
           const fileName = path.join(serverRoot, trimAny(file.id, ['.', '/', '\\']))
           const source = file.code
