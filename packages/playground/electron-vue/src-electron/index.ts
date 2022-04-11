@@ -1,3 +1,4 @@
+import path from 'path'
 import { app, BrowserWindow } from 'electron'
 
 let mainWindow: BrowserWindow | undefined
@@ -10,7 +11,8 @@ function createWindow() {
     useContentSize: true,
     webPreferences: {
       contextIsolation: true,
-      preload: import.meta.env.ELECTRON_PRELOAD_URL
+      // preload scripts must be an absolute path
+      preload: path.resolve(__dirname, import.meta.env.ELECTRON_PRELOAD_URL)
     }
   })
 
