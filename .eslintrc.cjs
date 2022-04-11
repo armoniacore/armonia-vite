@@ -65,6 +65,9 @@ module.exports = defineConfig({
 
     'unicorn/prefer-node-protocol': 'off',
     'sonarjs/cognitive-complexity': 'off',
-    'sonarjs/no-duplicate-string': 'off'
+    'sonarjs/no-duplicate-string': 'off',
+
+    'security/detect-non-literal-require': 'off',
+    'security/detect-non-literal-fs-filename': 'off'
   }
 })
