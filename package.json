@@ -15,6 +15,8 @@
   },
   "devDependencies": {
     "@algolia/client-search": "^4.13.0",
+    "@capacitor/cli": "^3.4.3",
+    "@capacitor/core": "^3.4.3",
     "@microsoft/api-extractor": "^7.21.2",
     "@rollup/plugin-commonjs": "^21.0.3",
     "@rollup/plugin-json": "^4.1.0",
