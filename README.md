@@ -1,15 +1,33 @@
+<br />
+
 <div align="center">
-  Armonia - Vite plugin for quick cross-platform application development.
-  <br />
-  <br />
-  <a href="https://github.com/armoniacore/armonia-vite/discussions">Ask a Question</a>
+  <img src="./docs/logo.png" width="560" />
 </div>
 
 <div align="center">
+  ⚡️ Vite plugin for quick cross-platform application development ⚡️
+</div>
+
 <br />
 
-[![license](https://img.shields.io/github/license/armoniacore/armonia-vite.svg?style=flat-square)](LICENSE)
-[![npm](https://img.shields.io/npm/v/@armonia/vite.svg?style=flat-square)](https://npmjs.com/package/@armonia/vite)
+<div align="center">
+
+  [![downloads](https://img.shields.io/npm/dw/@armonia/vite?style=flat-square)](https://npmjs.com/package/@armonia/vite)
+  [![npm](https://img.shields.io/npm/v/@armonia/vite.svg?style=flat-square&color=yellowgreen)](https://npmjs.com/package/@armonia/vite)
+  [![license](https://img.shields.io/github/license/armoniacore/armonia-vite.svg?style=flat-square)](LICENSE)
+
+</div>
+
+<div align="center">
+  <a href="https://github.com/armoniacore/armonia-vite/discussions">Ask a Question</a>
+</div>
+
+<br />
+
+<div align="center">
+
+  [![docs](https://img.shields.io/static/v1?label=docs&message=vite.armoniacore.com&style=flat-square&color=informational)](https://vite.armoniacore.com/)
+
 </div>
 
 <details open="open">
