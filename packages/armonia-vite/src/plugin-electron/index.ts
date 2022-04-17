@@ -10,8 +10,8 @@ import { emitBundle } from '../common/emit_bundle'
 import { ok, warn } from '../common/log'
 import { resolveAddress } from '../common/resolve_address'
 import { buildElectron } from './build'
-import type { ElectronProcess } from './run'
-import { runElectron } from './run'
+import type { ElectronProcess } from './electron_process'
+import { runElectron } from './electron_process'
 
 export type ElectronBuilderOptions = ElectronBuilderConfig
 export type ElectronPackagerOptions = Omit<ElectronPackagerConfig, 'dir' | 'out'>
@@ -173,7 +173,7 @@ export default function electron(options?: ElectronOptions): Plugin {
       }
 
       // critical or we cant build properly
-      if (command === 'build') {
+      if (command === 'build' && electronConfig.base === undefined) {
         electronConfig.base = './'
       }
 
@@ -185,10 +185,10 @@ export default function electron(options?: ElectronOptions): Plugin {
 
       // electron resolve the path relative to the binary location
       // vite build uses '/' which will result in electron loading index.html and assets from the OS root
-      if (command === 'build' && config.base !== './') {
+      if (command === 'build' && !config.base.startsWith('./')) {
         warn(
           config.logger,
-          `config.base must be './' when building electron, '${config.base}' provided instead, the output could not work as expected.`
+          `config.base must be a relative path when building electron, '${config.base}' provided instead, the output could not work as expected.`
         )
       }
     },

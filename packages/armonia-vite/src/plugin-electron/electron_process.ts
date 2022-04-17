@@ -40,8 +40,8 @@ export async function runElectron(root: string, argv?: string[]): Promise<Electr
     }
   })
 
-  const handleTerminationSignal = function (signal: NodeJS.Signals) {
-    process.on(signal, function signalHandler() {
+  function handleTerminationSignal(signal: NodeJS.Signals) {
+    process.on(signal, () => {
       if (!child.killed) {
         child.kill(signal)
       }
