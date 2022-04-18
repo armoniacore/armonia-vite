@@ -214,26 +214,6 @@ importers:
       vite: 2.9.5
       vue-tsc: 0.29.8_typescript@4.6.3
 
-  packages/playground/electron-vue/dist:
-    specifiers:
-      '@armonia/vite': link:../../../armonia-vite/dist
-      '@vitejs/plugin-vue': ^2.3.1
-      electron: 18.0.4
-      electron-builder: ^22.14.13
-      electron-packager: ^15.4.0
-      typescript: ^4.6.3
-      vite: ^2.9.5
-      vue-tsc: ^0.29.8
-    devDependencies:
-      '@armonia/vite': link:../../../armonia-vite/dist
-      '@vitejs/plugin-vue': 2.3.1_vite@2.9.5
-      electron: 18.0.4
-      electron-builder: 22.14.13
-      electron-packager: 15.4.0
-      typescript: 4.6.3
-      vite: 2.9.5
-      vue-tsc: 0.29.8_typescript@4.6.3
-
   packages/playground/ssr-vue:
     specifiers:
       '@armonia/vite': link:../../armonia-vite/dist
@@ -1757,16 +1737,6 @@ packages:
     dependencies:
       '@typescript-eslint/types': 5.19.0
       eslint-visitor-keys: 3.3.0
-    dev: true
-
-  /@vitejs/plugin-vue/2.3.1_vite@2.9.5:
-    resolution: {integrity: sha512-YNzBt8+jt6bSwpt7LP890U1UcTOIZZxfpE5WOJ638PNxSEKOqAi0+FSKS0nVeukfdZ0Ai/H7AFd6k3hayfGZqQ==}
-    engines: {node: '>=12.0.0'}
-    peerDependencies:
-      vite: ^2.5.10
-      vue: ^3.2.25
-    dependencies:
-      vite: 2.9.5
     dev: true
 
   /@vitejs/plugin-vue/2.3.1_vite@2.9.5+vue@3.2.33:
