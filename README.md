@@ -12,9 +12,9 @@
 
 <div align="center">
 
-  [![downloads](https://img.shields.io/npm/dw/@armonia/vite?style=flat-square)](https://npmjs.com/package/@armonia/vite)
-  [![npm](https://img.shields.io/npm/v/@armonia/vite.svg?style=flat-square&color=yellowgreen)](https://npmjs.com/package/@armonia/vite)
-  [![license](https://img.shields.io/github/license/armoniacore/armonia-vite.svg?style=flat-square)](LICENSE)
+  [![downloads](https://img.shields.io/npm/dw/@armonia/vite?style=for-the-badge)](https://npmjs.com/package/@armonia/vite)
+  [![npm](https://img.shields.io/npm/v/@armonia/vite.svg?style=for-the-badge&color=yellowgreen)](https://npmjs.com/package/@armonia/vite)
+  [![license](https://img.shields.io/github/license/armoniacore/armonia-vite.svg?style=for-the-badge)](LICENSE)
 
 </div>
 
@@ -26,7 +26,7 @@
 
 <div align="center">
 
-  [![docs](https://img.shields.io/static/v1?label=docs&message=vite.armoniacore.com&style=flat-square&color=informational)](https://vite.armoniacore.com/)
+  [![docs](https://img.shields.io/static/v1?label=docs&message=vite.armoniacore.com&style=for-the-badge&color=informational)](https://vite.armoniacore.com/)
 
 </div>
 
