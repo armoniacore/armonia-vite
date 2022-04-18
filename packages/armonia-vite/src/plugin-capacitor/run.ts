@@ -1,6 +1,5 @@
 import proc from 'child_process'
 import path from 'path'
-import type { ResolvedConfig } from 'vite'
 
 function resolveCapacitorBin() {
   // @capacitor/cli/package.json give us the exact file location

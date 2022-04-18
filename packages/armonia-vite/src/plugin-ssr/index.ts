@@ -157,6 +157,10 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
   const SSR_TEMPLATE_NAME = /* options?.manifestId || */ 'ssr:template'
 
   if (ssgOptions) {
+    if (ssgOptions === true) {
+      ssgOptions = {}
+    }
+
     if (typeof ssgOptions.serverRoot !== 'undefined') {
       options.serverRoot = ssgOptions.serverRoot
     }
@@ -190,7 +194,7 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
   }
 
   return {
-    name: 'vite-plugin-armonia-ssr',
+    name: 'armonia:vite-plugin-ssr',
     enforce: 'post',
 
     config(config, env) {
