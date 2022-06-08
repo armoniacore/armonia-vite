@@ -2,11 +2,13 @@ import type { Plugin } from 'vite'
 
 import type { ElectronOptions } from './plugin-electron'
 import electron from './plugin-electron'
+import ssg from './plugin-ssg'
 import type { SSGOptions, SSRPluginOptions } from './plugin-ssr'
 import ssr from './plugin-ssr'
 
 export { default as minify } from './minify'
 export { type ElectronBuilderOptions, type ElectronOptions, type ElectronPackagerOptions, default as electron } from './plugin-electron'
+export { default as ssg } from './plugin-ssg'
 export { type SSGFile, type SSGOptions, type SSRPluginOptions, type SSRRenderContext, default as ssr } from './plugin-ssr'
 
 export type Target =
@@ -58,11 +60,11 @@ export function armonia(options?: Options): Plugin {
   }
 
   if (mode === 'ssr') {
-    return ssr(options.ssr, false)
+    return ssr(options.ssr)
   }
 
   if (mode === 'ssg') {
-    return ssr(options.ssr, options.ssg)
+    return ssg(options.ssr, options.ssg)
   }
 
   return {

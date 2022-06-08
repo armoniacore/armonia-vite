@@ -149,10 +149,7 @@ async function render(
   return typeof renderedTemplate === 'string' ? renderedTemplate : undefined
 }
 
-/**
- * The vite ssr plugin, it apply a middleware to the vite dev server that allow development under ssr without leaving vite.
- */
-export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptions | undefined | false): Plugin {
+export function ssrInternal(options: SSRPluginOptions = {}, ssgOptions: SSGOptions | undefined | false = false): Plugin {
   const SSR_MANIFEST_NAME = /* options?.manifestId || */ 'ssr:manifest'
   const SSR_TEMPLATE_NAME = /* options?.manifestId || */ 'ssr:template'
 
@@ -328,7 +325,7 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
                 const ssr = await server.ssrLoadModule(ssrModule)
 
                 // render the template trough the ssr entry
-                const renderedTemplate = render(options, {
+                const renderedTemplate = await render(options, {
                   ssr,
                   req,
                   res,
@@ -483,4 +480,11 @@ export default function ssr(options: SSRPluginOptions = {}, ssgOptions: SSGOptio
       }
     }
   }
+}
+
+/**
+ * The vite ssr plugin, it apply a middleware to the vite dev server that allow development under ssr without leaving vite.
+ */
+export default function ssr(options: SSRPluginOptions = {}): Plugin {
+  return ssrInternal(options, false)
 }
