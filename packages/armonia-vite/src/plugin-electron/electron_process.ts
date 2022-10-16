@@ -1,5 +1,5 @@
-import type { ChildProcessWithoutNullStreams } from 'child_process'
-import proc from 'child_process'
+import type { ChildProcessWithoutNullStreams } from 'node:child_process'
+import proc from 'node:child_process'
 import colors from 'picocolors'
 
 export interface ElectronProcess {

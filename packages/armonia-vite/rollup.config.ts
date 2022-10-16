@@ -1,19 +1,21 @@
-import os from 'os'
-import fs from 'fs'
-import path from 'path'
-import { defineConfig } from 'rollup'
 import commonjs from '@rollup/plugin-commonjs'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import type { Plugin } from 'rollup'
+import { defineConfig } from 'rollup'
 import { apiExtractor } from 'rollup-plugin-api-extractor'
+import copy from 'rollup-plugin-copy'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import packageJsonPlugin from 'rollup-plugin-generate-package-json'
-import copy from 'rollup-plugin-copy'
-import packageJson from './package.json'
 
-function apiExtractor2(outputDir, types) {
-  function normalizePath(value) {
+const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+
+function apiExtractor2(outputDir: string, types: string[]) {
+  function normalizePath(value: string) {
     const normalizedPath = path.normalize(path.join(outputDir, value))
 
     if (os.platform() === 'win32') {
@@ -23,7 +25,7 @@ function apiExtractor2(outputDir, types) {
     return `./${normalizedPath}`
   }
 
-  const plugins = []
+  const plugins: Plugin[] = []
 
   for (const type of types) {
     plugins.push(
@@ -95,7 +97,7 @@ function apiExtractor2(outputDir, types) {
 
       writeBundle(options, bundle) {
         // from: https://gist.github.com/jakub-g/5903dc7e4028133704a4
-        function cleanEmptyFoldersRecursively(folder) {
+        function cleanEmptyFoldersRecursively(folder: string) {
           const isDir = fs.statSync(folder).isDirectory()
           if (!isDir) {
             return
@@ -141,14 +143,18 @@ export default defineConfig({
   input: {
     'bin/cli': 'src/cli.ts',
     index: 'src/index.ts'
+    // 'plugin-capacitor/index': 'src/plugin-capacitor/index.ts',
+    // 'plugin-electron/index': 'src/plugin-electron/index.ts',
+    // 'plugin-ssg/index': 'src/plugin-ssg/index.ts',
+    // 'plugin-ssr/index': 'src/plugin-ssr/index.ts',
     // minify: 'src/minify.ts'
   },
 
   output: {
     dir: './dist',
-    format: 'cjs',
+    format: 'commonjs',
     exports: 'named',
-    interop: false,
+    interop: 'default',
     preferConst: true,
     preserveModules: false,
     externalLiveBindings: false,
@@ -175,7 +181,7 @@ export default defineConfig({
           dest: 'dist'
         }
       ]
-    }),
+    }) as any,
     typescript({
       // well some hacky stuff right here
       exclude: ['rollup.config.ts'],
@@ -212,5 +218,5 @@ export default defineConfig({
     })
   ],
 
-  external: ['fs', 'path', 'http', 'child_process'].concat(Object.keys(packageJson.peerDependencies))
+  external: [...Object.keys(packageJson.peerDependencies)]
 })

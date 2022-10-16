@@ -1,7 +1,7 @@
 import type { Configuration as ElectronBuilderConfig } from 'electron-builder'
 import type { Options as ElectronPackagerConfig } from 'electron-packager'
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 import type { RollupWatcher } from 'rollup'
 import type { ConfigEnv, Plugin, ResolvedConfig, SSROptions, UserConfig, ViteDevServer } from 'vite'
 import { build, loadConfigFromFile, mergeConfig, normalizePath } from 'vite'
@@ -122,7 +122,7 @@ function createManager() {
         url
       })
 
-      watcher = (await build(
+      const bundle = await build(
         mergeConfig(config, {
           build: {
             watch: {}
@@ -142,7 +142,9 @@ function createManager() {
             }
           ]
         })
-      )) as RollupWatcher
+      )
+
+      watcher = bundle as unknown as RollupWatcher
     },
     async close() {
       const wt = watcher
@@ -390,7 +392,7 @@ export default function electron(options?: ElectronOptions): Plugin {
         })
       )
 
-      emitBundle(this, bundle)
+      emitBundle(this as any, bundle as any)
     },
 
     // we need closeBundle and not writeBundle as bundling requires all the files to be written on disk to properly work

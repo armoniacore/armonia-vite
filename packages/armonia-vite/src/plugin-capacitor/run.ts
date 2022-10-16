@@ -1,5 +1,5 @@
-import proc from 'child_process'
-import path from 'path'
+import proc from 'node:child_process'
+import path from 'node:path'
 
 function resolveCapacitorBin() {
   // @capacitor/cli/package.json give us the exact file location

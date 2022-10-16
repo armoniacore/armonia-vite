@@ -1,11 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"],
+  "include": ["src", "rollup.config.ts"],
   "compilerOptions": {
     "outDir": "dist",
     "baseUrl": ".",
     "sourceRoot": "../dist/src",
     "module": "ESNext",
-    "target": "ES2019",
+    "target": "ES2019"
   }
 }

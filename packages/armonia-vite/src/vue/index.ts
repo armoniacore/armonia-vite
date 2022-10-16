@@ -1,5 +1,4 @@
-// eslint-disable-next-line unicorn/import-style
-import { basename } from 'path'
+import { basename } from 'node:path'
 
 export function renderPreloadLink(file: string): string {
   if (file.endsWith('.js')) {
@@ -7,15 +6,15 @@ export function renderPreloadLink(file: string): string {
   } else if (file.endsWith('.css')) {
     return `<link rel="stylesheet" href="${file}">`
   } else if (file.endsWith('.woff')) {
-    return ` <link rel="preload" href="${file}" as="font" type="font/woff" crossorigin>`
+    return `<link rel="preload" href="${file}" as="font" type="font/woff" crossorigin>`
   } else if (file.endsWith('.woff2')) {
-    return ` <link rel="preload" href="${file}" as="font" type="font/woff2" crossorigin>`
+    return `<link rel="preload" href="${file}" as="font" type="font/woff2" crossorigin>`
   } else if (file.endsWith('.gif')) {
-    return ` <link rel="preload" href="${file}" as="image" type="image/gif">`
+    return `<link rel="preload" href="${file}" as="image" type="image/gif">`
   } else if (file.endsWith('.jpg') || file.endsWith('.jpeg')) {
-    return ` <link rel="preload" href="${file}" as="image" type="image/jpeg">`
+    return `<link rel="preload" href="${file}" as="image" type="image/jpeg">`
   } else if (file.endsWith('.png')) {
-    return ` <link rel="preload" href="${file}" as="image" type="image/png">`
+    return `<link rel="preload" href="${file}" as="image" type="image/png">`
   } else {
     // TODO
     return ''
@@ -33,10 +32,10 @@ export function renderPreloadLinks(modules: string[], manifest: Record<string, s
       files.forEach((file: string) => {
         if (!seen.has(file)) {
           seen.add(file)
-          const filename = basename(file)
+          const manifestFile = manifest[basename(file)]
 
-          if (manifest[filename]) {
-            for (const depFile of manifest[filename]!) {
+          if (manifestFile) {
+            for (const depFile of manifestFile) {
               links += renderPreloadLink(depFile)
               seen.add(depFile)
             }

@@ -1,4 +1,4 @@
-import path from 'path'
+import path from 'node:path'
 
 /**
  * Resolve the node package fully qualified root directory, where the root `package.json` is located.

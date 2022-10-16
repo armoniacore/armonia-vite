@@ -69,5 +69,16 @@ module.exports = defineConfig({
 
     'security/detect-non-literal-require': 'off',
     'security/detect-non-literal-fs-filename': 'off'
-  }
+  },
+  overrides: [
+    {
+      files: 'packages/armonia-vite/bin/**/*.*',
+      rules: {
+        'unicorn/prefer-module': 'off',
+        'node/shebang': 'off',
+        'node/no-missing-require': 'off',
+        'node/no-missing-import': 'off'
+      }
+    }
+  ]
 })
