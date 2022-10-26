@@ -1,10 +1,38 @@
-<script setup lang="ts">
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup
+<script lang="ts">
 import HelloWorld from './components/HelloWorld.vue'
+import { defineComponent, ref } from 'vue'
+
+interface ElectronBridge {
+  readSettings(): {
+    settings: {
+      motd: string
+    }
+  }
+}
+
+declare global {
+  var electron: ElectronBridge
+}
+
+export default defineComponent({
+  components: { HelloWorld },
+  setup() {
+    const { settings } = window.electron.readSettings()
+
+    const motd = ref(settings.motd)
+
+    // print the message to the console also
+    console.log(settings.motd)
+
+    return {
+      motd
+    }
+  }
+})
 </script>
 
 <template>
+  <p>{{ motd }}</p>
   <img alt="Vue logo" src="./assets/logo.png" />
   <HelloWorld msg="Hello Vue 3 + TypeScript + Vite" />
 </template>

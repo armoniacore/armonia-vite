@@ -1,8 +1,11 @@
-import fs from 'fs'
 import { contextBridge } from 'electron'
 
-contextBridge.exposeInMainWorld('fs', {
+contextBridge.exposeInMainWorld('electron', {
   readSettings: function () {
-    return JSON.parse(fs.readFileSync('./settings.json', 'utf-8'))
+    return {
+      settings: {
+        motd: 'This is the message of the day from electron!'
+      }
+    }
   }
 })
