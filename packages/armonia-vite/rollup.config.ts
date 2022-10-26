@@ -154,8 +154,12 @@ export default defineConfig({
     dir: './dist',
     format: 'commonjs',
     exports: 'named',
-    interop: 'default',
-    preferConst: true,
+    // interop: 'default',
+    // preferConst: true,
+    interop: false,
+    generatedCode: {
+      constBindings: true
+    },
     preserveModules: false,
     externalLiveBindings: false,
     sourcemap: false,
